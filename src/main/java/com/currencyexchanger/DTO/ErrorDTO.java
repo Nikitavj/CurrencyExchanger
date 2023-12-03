@@ -1,4 +1,4 @@
-package com.currencyexchanger.controller.error;
+package com.currencyexchanger.DTO;
 
 public class ErrorDTO {
     private String message;

@@ -51,7 +51,7 @@ public class ExchangeModel {
     }
 
     public void setRate(BigDecimal rate) {
-        this.rate = rate.setScale(6, ROUND_FLOOR);
+        this.rate = rate;
     }
 
     public BigDecimal getAmount() {
@@ -67,6 +67,6 @@ public class ExchangeModel {
     }
 
     public void setConvertedAmount(BigDecimal convertedAmount) {
-        this.convertedAmount = convertedAmount.setScale(2, ROUND_FLOOR);
+        this.convertedAmount = convertedAmount;
     }
 }

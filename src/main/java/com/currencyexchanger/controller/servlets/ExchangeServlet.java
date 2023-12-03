@@ -1,8 +1,8 @@
 package com.currencyexchanger.controller.servlets;
 
+import com.currencyexchanger.DTO.ErrorDTO;
 import com.currencyexchanger.DTO.RequestExchangeDTO;
 import com.currencyexchanger.controller.Validator;
-import com.currencyexchanger.controller.error.ErrorDTO;
 import com.currencyexchanger.controller.exception.InvalidExchangeParameters;
 import com.currencyexchanger.model.ExchangeModel;
 import com.currencyexchanger.servise.Exchange;

@@ -1,8 +1,8 @@
 package com.currencyexchanger.controller.servlets;
 
+import com.currencyexchanger.DTO.ErrorDTO;
 import com.currencyexchanger.DTO.RequestExchangeRateDTO;
 import com.currencyexchanger.controller.Validator;
-import com.currencyexchanger.controller.error.ErrorDTO;
 import com.currencyexchanger.controller.exception.*;
 import com.currencyexchanger.model.ExchangeRateModel;
 import com.currencyexchanger.repository.JDBCRepsitory;

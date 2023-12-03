@@ -38,7 +38,7 @@ public class Exchange {
             exchangeModel.setTargetCurrency(exchangeRateModel.getTargetCurrency());
             exchangeModel.setRate(exchangeRateModel.getRate());
             exchangeModel.setAmount(requestExchangeDTO.getAmount());
-            exchangeModel.setConvertedAmount(requestExchangeDTO.getAmount().multiply(exchangeRateModel.getRate()));
+            exchangeModel.setConvertedAmount(requestExchangeDTO.getAmount().multiply(exchangeRateModel.getRate()).setScale(2, ROUND_FLOOR));
         } catch (NotFoundExchangeRateException e) {
             return null;
         }
@@ -76,7 +76,7 @@ public class Exchange {
             exchangeModel.setTargetCurrency(targetEexchangeRateModel.getTargetCurrency());
             exchangeModel.setRate(targetEexchangeRateModel.getRate().divide(baseEexchangeRateModel.getRate(), 6, ROUND_FLOOR));
             exchangeModel.setAmount(requestExchangeDTO.getAmount());
-            exchangeModel.setConvertedAmount(requestExchangeDTO.getAmount().multiply(exchangeModel.getRate()));
+            exchangeModel.setConvertedAmount(requestExchangeDTO.getAmount().multiply(exchangeModel.getRate()).setScale(2, ROUND_FLOOR));
 
         } catch (NotFoundExchangeRateException e) {
             return null;

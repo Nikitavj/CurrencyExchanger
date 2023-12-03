@@ -1,6 +1,5 @@
 package com.currencyexchanger.controller;
 
-import com.currencyexchanger.controller.error.ErrorMessages;
 import com.currencyexchanger.controller.exception.InvalidCurrencyCodeException;
 import com.currencyexchanger.controller.exception.InvalidCurrencyRatesParameters;
 import com.currencyexchanger.controller.exception.InvalidExchangeParameters;
