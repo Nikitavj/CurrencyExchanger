@@ -1,24 +1,21 @@
 package com.currencyexchanger.repository;
 
-import com.currencyexchanger.control.exception.NotFoundExchangeRateException;
-import com.currencyexchanger.model.ExchangeRate;
-import com.currencyexchanger.utils.DBUtils;
+import com.currencyexchanger.DTO.RequestExchangeRateDTO;
+import com.currencyexchanger.controller.exception.NotFoundExchangeRateException;
+import com.currencyexchanger.model.ExchangeRateModel;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-public class Update {
+class Update extends CRUD {
     private static final String UPDATE_EXCHANGE_RATE = "UPDATE exchangerates SET rate = ? WHERE ID = ?;";
 
-    public static ExchangeRate updateExchangeRate(String baseCurrencyCode, String targetCurrencyCode, double rate) throws SQLException, NotFoundExchangeRateException {
-        ExchangeRate exchangeRate = Read.getExchangeRate(baseCurrencyCode, targetCurrencyCode);
-
-        Connection connection = DBUtils.getConnect();
+    protected static ExchangeRateModel updateExchangeRate(RequestExchangeRateDTO request) throws SQLException, NotFoundExchangeRateException {
+        ExchangeRateModel exchangeRateModel = Read.getExchangeRate(request);
         PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_EXCHANGE_RATE);
-        preparedStatement.setDouble(1, rate);
-        preparedStatement.setInt(2, exchangeRate.getId());
+        preparedStatement.setBigDecimal(1, request.getRate());
+        preparedStatement.setInt(2, exchangeRateModel.getId());
         preparedStatement.executeUpdate();
-        return Read.getExchangeRate(baseCurrencyCode, targetCurrencyCode);
+        return Read.getExchangeRate(request);
     }
 }

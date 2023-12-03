@@ -1,56 +1,62 @@
 package com.currencyexchanger.repository;
 
-import com.currencyexchanger.control.exception.NotFoundCurrencyException;
-import com.currencyexchanger.control.exception.NotFoundExchangeRateException;
-import com.currencyexchanger.model.Currency;
-import com.currencyexchanger.model.ExchangeRate;
-import com.currencyexchanger.utils.DBUtils;
+import com.currencyexchanger.DTO.RequestExchangeRateDTO;
+import com.currencyexchanger.controller.exception.NotFoundCurrencyException;
+import com.currencyexchanger.controller.exception.NotFoundExchangeRateException;
+import com.currencyexchanger.model.CurrencyModel;
+import com.currencyexchanger.model.ExchangeRateModel;
 
-import java.sql.Connection;
+import java.nio.file.FileAlreadyExistsException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-public class Create {
+class Create extends CRUD{
     private static final String ADD_CURRENCY = "INSERT INTO currencies (code, fullname, sign) VALUES (?, ?, ?);";
     private static final String ADD_EXCHANGE_RATE = "INSERT INTO exchangerates (BaseCurrencyId, TargetCurrencyId, rate) VALUES (?, ?, ?);";
 
-    public static Currency addCurrency(String code, String name, String sign) throws SQLException {
-        Currency currency = null;
+    protected static CurrencyModel addCurrency(String code, String name, String sign) throws NoSuchFieldException, FileAlreadyExistsException {
+        CurrencyModel currencyModel = null;
 
-        Connection connection = DBUtils.getConnect();
+        try {
         PreparedStatement preparedStatement = connection.prepareStatement(ADD_CURRENCY);
         preparedStatement.setString(1, code);
         preparedStatement.setString(2, name);
         preparedStatement.setString(3, sign);
         preparedStatement.executeUpdate();
+        currencyModel = Read.getCurrency(code);
 
-        try {
-            currency = Read.getCurrency(code);
         } catch (NotFoundCurrencyException e) {
-            throw new SQLException();
+            throw new RuntimeException(e);
+        } catch (SQLException e) {
+            if (e.getErrorCode() == 1062) {
+                throw new FileAlreadyExistsException("Запись в БД уже существует");
+            }
+            if (e.getErrorCode() == 1048) {
+                throw new NoSuchFieldException("Отсутсвует параметр в запросе");
+            }
         }
-        return currency;
+        return currencyModel;
     }
 
-    public static ExchangeRate addExchangeRate(String baseCurrencyCode, String targetCurrencyCode, double rate) throws SQLException {
-        ExchangeRate exchangeRate = null;
+    protected static ExchangeRateModel addExchangeRate(RequestExchangeRateDTO requestDTO) throws FileAlreadyExistsException, NotFoundCurrencyException {
+        ExchangeRateModel exchangeRateModel = null;
 
         try {
-            Currency currencyBase = Read.getCurrency(baseCurrencyCode);
-            Currency currencyTarget = Read.getCurrency(targetCurrencyCode);
-            Connection connection = DBUtils.getConnect();
+            CurrencyModel currencyModelBase = Read.getCurrency(requestDTO.getBaseCurrency());
+            CurrencyModel currencyModelTarget = Read.getCurrency(requestDTO.getTargetCurrncy());
             PreparedStatement preparedStatement = connection.prepareStatement(ADD_EXCHANGE_RATE);
-            preparedStatement.setInt(1, currencyBase.getId());
-            preparedStatement.setInt(2, currencyTarget.getId());
-            preparedStatement.setDouble(3, rate);
+            preparedStatement.setInt(1, currencyModelBase.getId());
+            preparedStatement.setInt(2, currencyModelTarget.getId());
+            preparedStatement.setBigDecimal(3, requestDTO.getRate());
             preparedStatement.executeUpdate();
-            exchangeRate = Read.getExchangeRate(baseCurrencyCode, targetCurrencyCode);
-        } catch (NotFoundExchangeRateException e) {
-            throw new SQLException();
-        } catch (NotFoundCurrencyException e) {
-            throw new SQLException();
-        }
+            exchangeRateModel = Read.getExchangeRate(requestDTO);
 
-        return exchangeRate;
+
+        } catch (SQLException e) {
+            if (e.getErrorCode() == 1062) throw new FileAlreadyExistsException("Валютная пара с таким кодом уже существует");
+        } catch (NotFoundExchangeRateException e) {
+            throw new RuntimeException(e);
+        }
+        return exchangeRateModel;
     }
 }

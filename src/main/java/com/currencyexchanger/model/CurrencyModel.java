@@ -1,19 +1,21 @@
 package com.currencyexchanger.model;
 
-public class Currency {
+import com.fasterxml.jackson.annotation.JsonGetter;
+
+public class CurrencyModel {
     private int id;
-    private String code;
     private String fullName;
+    private String code;
     private String sign;
 
-    public Currency(int id, String code, String fullName, String sign) {
+    public CurrencyModel(int id, String code, String fullName, String sign) {
         this.id = id;
         this.code = code;
         this.fullName = fullName;
         this.sign = sign;
     }
 
-    public Currency(){}
+    public CurrencyModel(){}
 
     public int getId() {
         return id;
@@ -31,6 +33,7 @@ public class Currency {
         this.code = code;
     }
 
+@JsonGetter("name")
     public String getFullName() {
         return fullName;
     }

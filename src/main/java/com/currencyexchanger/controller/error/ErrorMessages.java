@@ -1,4 +1,4 @@
-package com.currencyexchanger.control.error;
+package com.currencyexchanger.controller.error;
 
 public enum ErrorMessages {
     CURRENCY_GET_404("Валюта не найдена"),

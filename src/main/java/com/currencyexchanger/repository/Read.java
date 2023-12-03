@@ -1,30 +1,28 @@
 package com.currencyexchanger.repository;
 
-import com.currencyexchanger.control.error.ErrorMessages;
-import com.currencyexchanger.control.exception.NotFoundCurrencyException;
-import com.currencyexchanger.control.exception.NotFoundExchangeRateException;
-import com.currencyexchanger.model.Currency;
-import com.currencyexchanger.model.ExchangeRate;
-import com.currencyexchanger.utils.DBUtils;
+import com.currencyexchanger.DTO.RequestExchangeRateDTO;
+import com.currencyexchanger.controller.exception.NotFoundCurrencyException;
+import com.currencyexchanger.controller.exception.NotFoundExchangeRateException;
+import com.currencyexchanger.model.CurrencyModel;
+import com.currencyexchanger.model.ExchangeRateModel;
 
-import java.sql.Connection;
+import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Read {
+class Read extends CRUD{
 
     private static String SELECT_ALL_CURRENCIES = "SELECT * FROM currencies;";
     private static String SELECT_CURRENCY = "SELECT * FROM currencies WHERE Code = ?";
     private static String SELECT_ALL_EXCHANGE_RATES = "SELECT * FROM exchangerates;";
     private static String SELECT_EXCHANGE_RATE = "SELECT * FROM exchangerates WHERE BaseCurrencyId = ? AND TargetCurrencyId = ?";
 
-    public static Currency getCurrency(String codeCurrencies) throws SQLException, NotFoundCurrencyException {
-        Currency currency = null;
+    protected static CurrencyModel getCurrency(String codeCurrencies) throws SQLException, NotFoundCurrencyException {
+        CurrencyModel currencyModel = null;
 
-        Connection connection = DBUtils.getConnect();
         PreparedStatement preparedStatement = connection.prepareStatement(SELECT_CURRENCY);
         preparedStatement.setString(1, codeCurrencies);
         ResultSet resultSet = preparedStatement.executeQuery();
@@ -34,16 +32,15 @@ public class Read {
             String code = resultSet.getString("Code");
             String fullname = resultSet.getString("Fullname");
             String sign = resultSet.getString("Sign");
-            currency = new Currency(id, code, fullname, sign);
+            currencyModel = new CurrencyModel(id, code, fullname, sign);
         }
-        if (currency == null) throw new NotFoundCurrencyException(ErrorMessages.CURRENCY_GET_404.getMessage());
-        return currency;
+        if (currencyModel == null) throw new NotFoundCurrencyException("Валюта с таким кодом не найдена в БД");
+        return currencyModel;
     }
 
-    public static Currency getCurrencyID(int currencyID) throws SQLException, NotFoundCurrencyException {
-        Currency currency = null;
+    protected static CurrencyModel getCurrencyID(int currencyID) throws SQLException, NotFoundCurrencyException {
+        CurrencyModel currencyModel = null;
 
-        Connection connection = DBUtils.getConnect();
         PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM currencies WHERE id = ?");
         preparedStatement.setInt(1, currencyID);
         ResultSet resultSet = preparedStatement.executeQuery();
@@ -53,16 +50,15 @@ public class Read {
             String code = resultSet.getString("Code");
             String fullname = resultSet.getString("Fullname");
             String sign = resultSet.getString("Sign");
-            currency = new Currency(id, code, fullname, sign);
+            currencyModel = new CurrencyModel(id, code, fullname, sign);
         }
-        if (currency == null) throw new NotFoundCurrencyException(ErrorMessages.CURRENCY_GET_404.getMessage());
-        return currency;
+        if (currencyModel == null) throw new NotFoundCurrencyException("Валюта с таким ID не найдена в БД");
+        return currencyModel;
     }
 
-    public static List<Currency> getCurrencies() throws SQLException {
-        List<Currency> dtoList = new ArrayList<>();
+    protected static List<CurrencyModel> getCurrencies() throws SQLException {
+        List<CurrencyModel> dtoList = new ArrayList<>();
 
-        Connection connection = DBUtils.getConnect();
         PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_CURRENCIES);
         ResultSet resultSet = preparedStatement.executeQuery();
 
@@ -71,16 +67,15 @@ public class Read {
             String code = resultSet.getString("Code");
             String fullname = resultSet.getString("Fullname");
             String sign = resultSet.getString("Sign");
-            Currency currency = new Currency(id, code, fullname, sign);
-            dtoList.add(currency);
+            CurrencyModel currencyModel = new CurrencyModel(id, code, fullname, sign);
+            dtoList.add(currencyModel);
         }
         return dtoList;
     }
 
-    public static List<ExchangeRate> getExchangeRates() throws SQLException {
-        List<ExchangeRate> list = new ArrayList<>();
+    protected static List<ExchangeRateModel> getExchangeRates() throws SQLException {
+        List<ExchangeRateModel> list = new ArrayList<>();
 
-        Connection connection = DBUtils.getConnect();
         PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_EXCHANGE_RATES);
         ResultSet resultSet = preparedStatement.executeQuery();
 
@@ -89,11 +84,11 @@ public class Read {
                 int id = resultSet.getInt(1);
                 int baseCurrencyId = resultSet.getInt(2);
                 int targetCurrencyId = resultSet.getInt(3);
-                double rate = resultSet.getDouble(4);
-                Currency baseCurrency = getCurrencyID(baseCurrencyId);
-                Currency targetCurrency = getCurrencyID(targetCurrencyId);
-                ExchangeRate exchangeRate = new ExchangeRate(id, baseCurrency, targetCurrency, rate);
-                list.add(exchangeRate);
+                BigDecimal rate = resultSet.getBigDecimal(4);
+                CurrencyModel baseCurrencyModel = getCurrencyID(baseCurrencyId);
+                CurrencyModel targetCurrencyModel = getCurrencyID(targetCurrencyId);
+                ExchangeRateModel exchangeRateModel = new ExchangeRateModel(id, baseCurrencyModel, targetCurrencyModel, rate);
+                list.add(exchangeRateModel);
             }
         } catch (NotFoundCurrencyException e) {
             throw new SQLException();
@@ -101,30 +96,30 @@ public class Read {
         return list;
     }
 
-    public static ExchangeRate getExchangeRate(String baseCurrencyCode, String targetCurrencyCode) throws SQLException, NotFoundExchangeRateException {
-        ExchangeRate exchangeRate = null;
-        Currency baseCurrency = null;
-        Currency targetCurrency = null;
+    protected static ExchangeRateModel getExchangeRate(RequestExchangeRateDTO requestExchangeRateDTO) throws SQLException, NotFoundExchangeRateException {
+        ExchangeRateModel exchangeRateModel = null;
+        CurrencyModel baseCurrencyModel = null;
+        CurrencyModel targetCurrencyModel = null;
 
         try {
-            baseCurrency = getCurrency(baseCurrencyCode);
-            targetCurrency = getCurrency(targetCurrencyCode);
+            baseCurrencyModel = getCurrency(requestExchangeRateDTO.getBaseCurrency());
+            targetCurrencyModel = getCurrency(requestExchangeRateDTO.getTargetCurrncy());
+
+            PreparedStatement preparedStatement = connection.prepareStatement(SELECT_EXCHANGE_RATE);
+            preparedStatement.setInt(1, baseCurrencyModel.getId());
+            preparedStatement.setInt(2, targetCurrencyModel.getId());
+            ResultSet resultSet = preparedStatement.executeQuery();
+
+            while (resultSet.next()) {
+                int id = resultSet.getInt(1);
+                BigDecimal rate = resultSet.getBigDecimal(4);
+                exchangeRateModel = new ExchangeRateModel(id, baseCurrencyModel, targetCurrencyModel, rate);
+            }
+
+            if (exchangeRateModel == null) throw new NotFoundCurrencyException();
         } catch (NotFoundCurrencyException e) {
-            throw new NotFoundExchangeRateException(ErrorMessages.EXCHANGE_RATE_GET_404.getMessage());
+            throw new NotFoundExchangeRateException("Обменный курс не найден");
         }
-
-        Connection connection = DBUtils.getConnect();
-        PreparedStatement preparedStatement = connection.prepareStatement(SELECT_EXCHANGE_RATE);
-        preparedStatement.setInt(1, baseCurrency.getId());
-        preparedStatement.setInt(2, targetCurrency.getId());
-        ResultSet resultSet = preparedStatement.executeQuery();
-
-        while (resultSet.next()) {
-            int id = resultSet.getInt(1);
-            double rate = resultSet.getDouble(4);
-            exchangeRate = new ExchangeRate(id, baseCurrency, targetCurrency, rate);
-        }
-        if (exchangeRate == null) throw new NotFoundExchangeRateException(ErrorMessages.EXCHANGE_RATE_GET_404.getMessage());
-        return exchangeRate;
+        return exchangeRateModel;
     }
 }

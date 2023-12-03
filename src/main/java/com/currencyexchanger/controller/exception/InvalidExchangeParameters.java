@@ -1,4 +1,4 @@
-package com.currencyexchanger.control.exception;
+package com.currencyexchanger.controller.exception;
 
 public class InvalidExchangeParameters extends Exception{
     public InvalidExchangeParameters(String message) {
