@@ -21,9 +21,6 @@ public class ExchangeRateServlet extends BaseServlet {
 
     @Override
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        response.setContentType("application/json");
-        ExchangeRateModel exchangeRateModel = null;
-
         String rateCode = request.getPathInfo().replaceAll("/", "");
 
         try {
@@ -33,7 +30,7 @@ public class ExchangeRateServlet extends BaseServlet {
             String targetCurrensyCode = rateCode.substring(3, 6);
             RequestExchangeRateDTO requestExchangeRateDTO = new RequestExchangeRateDTO(baseCurrensyCode, targetCurrensyCode);
 
-            exchangeRateModel = JDBCRepsitory.readExchangeRate(requestExchangeRateDTO);
+            ExchangeRateModel exchangeRateModel = JDBCRepsitory.readExchangeRate(requestExchangeRateDTO);
             printWriter.println(objectMapper.writeValueAsString(exchangeRateModel));
 
         } catch (InvalidRateCodeException e) {
@@ -55,9 +52,6 @@ public class ExchangeRateServlet extends BaseServlet {
     }
 
     protected void doPatch(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        response.setContentType("application/json");
-        ExchangeRateModel exchangeRateModel = null;
-
         String rateCode = request.getPathInfo().replaceAll("/", "");
         String rateParameter = request.getParameter("rate");
 
@@ -69,7 +63,7 @@ public class ExchangeRateServlet extends BaseServlet {
             String targetCurrensyCode = rateCode.substring(3, 6);
             RequestExchangeRateDTO requestExchangeRateDTO = new RequestExchangeRateDTO(baseCurrensyCode, targetCurrensyCode,rate);
 
-            exchangeRateModel = JDBCRepsitory.updateExchangeRate(requestExchangeRateDTO);
+            ExchangeRateModel exchangeRateModel = JDBCRepsitory.updateExchangeRate(requestExchangeRateDTO);
             printWriter.println(objectMapper.writeValueAsString(exchangeRateModel));
 
         } catch (InvalidCurrencyCodeException e) {

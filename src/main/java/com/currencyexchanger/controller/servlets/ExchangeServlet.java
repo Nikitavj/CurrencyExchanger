@@ -3,7 +3,7 @@ package com.currencyexchanger.controller.servlets;
 import com.currencyexchanger.DTO.ErrorDTO;
 import com.currencyexchanger.DTO.RequestExchangeDTO;
 import com.currencyexchanger.controller.Validator;
-import com.currencyexchanger.controller.exception.InvalidExchangeParameters;
+import com.currencyexchanger.controller.exception.InvalidParametersException;
 import com.currencyexchanger.model.ExchangeModel;
 import com.currencyexchanger.servise.Exchange;
 import jakarta.servlet.ServletException;
@@ -19,9 +19,6 @@ public class ExchangeServlet extends BaseServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        response.setContentType("application/json");
-        ExchangeModel exchangeModel = null;
-
         String from = request.getParameter("from");
         String to = request.getParameter("to");
         String stringAmount = request.getParameter("amount");
@@ -32,10 +29,10 @@ public class ExchangeServlet extends BaseServlet {
             BigDecimal amount = new BigDecimal(stringAmount);
             RequestExchangeDTO requestDTO = new RequestExchangeDTO(from, to, amount);
 
-            exchangeModel = Exchange.exchange(requestDTO);
+            ExchangeModel exchangeModel = Exchange.exchange(requestDTO);
             printWriter.println(objectMapper.writeValueAsString(exchangeModel));
 
-        } catch (InvalidExchangeParameters e) {
+        } catch (InvalidParametersException e) {
             response.setStatus(response.SC_CONFLICT);
             printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
 
@@ -45,8 +42,8 @@ public class ExchangeServlet extends BaseServlet {
     }
 
     @Override
-    protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        printWriter = resp.getWriter();
-        super.service(req, resp);
+    protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        printWriter = response.getWriter();
+        super.service(request, response);
     }
 }

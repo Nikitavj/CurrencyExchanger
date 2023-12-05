@@ -6,5 +6,4 @@ import java.sql.Connection;
 class CRUD {
 
     protected static Connection connection = DBUtils.getConnect();
-
 }

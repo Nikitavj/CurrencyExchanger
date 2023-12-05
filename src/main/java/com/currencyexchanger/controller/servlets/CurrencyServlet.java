@@ -18,9 +18,6 @@ import java.sql.SQLException;
 public class CurrencyServlet extends BaseServlet {
 
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        response.setContentType("application/json");
-        CurrencyModel currencyModelObj = null;
-
         String code = request.getPathInfo().replaceAll("/", "");
 
         try {
@@ -28,7 +25,7 @@ public class CurrencyServlet extends BaseServlet {
 
             RequestCurrencyDTO requestCurrencyDTO = new RequestCurrencyDTO(code);
 
-            currencyModelObj = JDBCRepsitory.readCurrency(requestCurrencyDTO);
+            CurrencyModel currencyModelObj = JDBCRepsitory.readCurrency(requestCurrencyDTO);
             printWriter.println(objectMapper.writeValueAsString(currencyModelObj));
 
         } catch (InvalidCurrencyCodeException e) {

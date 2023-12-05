@@ -23,7 +23,8 @@ class Create extends CRUD{
         preparedStatement.setString(2, name);
         preparedStatement.setString(3, sign);
         preparedStatement.executeUpdate();
-        currencyModel = Read.getCurrency(code);
+
+        currencyModel = Read.getCurrencyCode(code);
 
         } catch (NotFoundCurrencyException e) {
             throw new RuntimeException(e);
@@ -42,15 +43,14 @@ class Create extends CRUD{
         ExchangeRateModel exchangeRateModel = null;
 
         try {
-            CurrencyModel currencyModelBase = Read.getCurrency(requestDTO.getBaseCurrency());
-            CurrencyModel currencyModelTarget = Read.getCurrency(requestDTO.getTargetCurrncy());
+            CurrencyModel currencyModelBase = Read.getCurrencyCode(requestDTO.getBaseCurrency());
+            CurrencyModel currencyModelTarget = Read.getCurrencyCode(requestDTO.getTargetCurrncy());
             PreparedStatement preparedStatement = connection.prepareStatement(ADD_EXCHANGE_RATE);
             preparedStatement.setInt(1, currencyModelBase.getId());
             preparedStatement.setInt(2, currencyModelTarget.getId());
             preparedStatement.setBigDecimal(3, requestDTO.getRate());
             preparedStatement.executeUpdate();
             exchangeRateModel = Read.getExchangeRate(requestDTO);
-
 
         } catch (SQLException e) {
             if (e.getErrorCode() == 1062) throw new FileAlreadyExistsException("Валютная пара с таким кодом уже существует");

@@ -13,17 +13,10 @@ import java.sql.SQLException;
 import java.util.List;
 
 
-abstract public class JDBCRepsitory {
+ public class JDBCRepsitory {
 
     public static CurrencyModel readCurrency(RequestCurrencyDTO requestCurrencyDTO) throws SQLException, NotFoundCurrencyException {
-        CurrencyModel currencyModel = null;
-
-        if (requestCurrencyDTO.getCode() == null) {
-            currencyModel = Read.getCurrencyID(requestCurrencyDTO.getId());
-        } else {
-            currencyModel = Read.getCurrency(requestCurrencyDTO.getCode());
-        }
-        return currencyModel;
+        return Read.getCurrencyCode(requestCurrencyDTO.getCode());
     }
 
     public static List<CurrencyModel> readCurrencies () throws SQLException {

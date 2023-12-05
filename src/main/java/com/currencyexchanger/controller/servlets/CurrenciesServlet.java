@@ -20,14 +20,10 @@ public class CurrenciesServlet extends BaseServlet {
 
     @Override
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
-       response.setContentType("application/json");
-
-        List<CurrencyModel> list = null;
 
         try {
-            list = JDBCRepsitory.readCurrencies();
-            String json = objectMapper.writeValueAsString(list);
-            printWriter.println(json);
+            List<CurrencyModel> list = JDBCRepsitory.readCurrencies();
+            printWriter.println(objectMapper.writeValueAsString(list));
 
         } catch (SQLException e) {
             response.setStatus(response.SC_INTERNAL_SERVER_ERROR);
@@ -37,9 +33,6 @@ public class CurrenciesServlet extends BaseServlet {
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        response.setContentType("application/json");
-        CurrencyModel currencyModel = null;
-
         String name = request.getParameter("name");
         String code = request.getParameter("code");
         String sign = request.getParameter("sign");
@@ -47,15 +40,18 @@ public class CurrenciesServlet extends BaseServlet {
         try {
             Validator.validateCurrencyCode(code);
             RequestCurrenciesDTO requestCurrenciesDTO = new RequestCurrenciesDTO(name, code, sign);
-            currencyModel = JDBCRepsitory.createCurrency(requestCurrenciesDTO);
+
+            CurrencyModel currencyModel = JDBCRepsitory.createCurrency(requestCurrenciesDTO);
             printWriter.println(objectMapper.writeValueAsString(currencyModel));
 
         } catch (InvalidCurrencyCodeException e) {
             response.setStatus(response.SC_CONFLICT);
             printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
+
         } catch (FileAlreadyExistsException e) {
             response.setStatus(response.SC_CONFLICT);
             printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
+
         } catch (NoSuchFieldException e) {
             response.setStatus(response.SC_BAD_REQUEST);
             printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));

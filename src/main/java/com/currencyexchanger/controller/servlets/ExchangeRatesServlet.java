@@ -21,11 +21,9 @@ public class ExchangeRatesServlet extends BaseServlet {
 
     @Override
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        response.setContentType("application/json");
-        List<ExchangeRateModel> list = null;
 
         try {
-            list = JDBCRepsitory.readExchangeRates();
+            List<ExchangeRateModel> list = JDBCRepsitory.readExchangeRates();
             printWriter.println(objectMapper.writeValueAsString(list));
 
         } catch (NotFoundExchangeRateException e) {
@@ -40,9 +38,6 @@ public class ExchangeRatesServlet extends BaseServlet {
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        response.setContentType("application/json");
-        ExchangeRateModel exchangeRateModel = null;
-
         String baseCurrencyCode = request.getParameter("baseCurrencyCode");
         String targetCurrencyCode = request.getParameter("targetCurrencyCode");
         String stringRate = request.getParameter("rate");
@@ -54,7 +49,7 @@ public class ExchangeRatesServlet extends BaseServlet {
             BigDecimal rate = new BigDecimal(stringRate);
             RequestExchangeRateDTO requestDTO = new RequestExchangeRateDTO(baseCurrencyCode, targetCurrencyCode, rate);
 
-            exchangeRateModel = JDBCRepsitory.createExchangeRate(requestDTO);
+            ExchangeRateModel exchangeRateModel = JDBCRepsitory.createExchangeRate(requestDTO);
             printWriter.println(objectMapper.writeValueAsString(exchangeRateModel));
 
         } catch (FileAlreadyExistsException e) {
@@ -69,7 +64,7 @@ public class ExchangeRatesServlet extends BaseServlet {
             response.setStatus(response.SC_BAD_REQUEST);
             printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
 
-        } catch (InvalidCurrencyRatesParameters e) {
+        } catch (InvalidParametersException e) {
             response.setStatus(response.SC_BAD_REQUEST);
             printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
 

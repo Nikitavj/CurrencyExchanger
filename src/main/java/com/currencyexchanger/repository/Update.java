@@ -12,10 +12,12 @@ class Update extends CRUD {
 
     protected static ExchangeRateModel updateExchangeRate(RequestExchangeRateDTO request) throws SQLException, NotFoundExchangeRateException {
         ExchangeRateModel exchangeRateModel = Read.getExchangeRate(request);
+
         PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_EXCHANGE_RATE);
         preparedStatement.setBigDecimal(1, request.getRate());
         preparedStatement.setInt(2, exchangeRateModel.getId());
         preparedStatement.executeUpdate();
+
         return Read.getExchangeRate(request);
     }
 }

@@ -20,7 +20,7 @@ class Read extends CRUD{
     private static String SELECT_ALL_EXCHANGE_RATES = "SELECT * FROM exchangerates;";
     private static String SELECT_EXCHANGE_RATE = "SELECT * FROM exchangerates WHERE BaseCurrencyId = ? AND TargetCurrencyId = ?";
 
-    protected static CurrencyModel getCurrency(String codeCurrencies) throws SQLException, NotFoundCurrencyException {
+    protected static CurrencyModel getCurrencyCode(String codeCurrencies) throws SQLException, NotFoundCurrencyException {
         CurrencyModel currencyModel = null;
 
         PreparedStatement preparedStatement = connection.prepareStatement(SELECT_CURRENCY);
@@ -34,7 +34,7 @@ class Read extends CRUD{
             String sign = resultSet.getString("Sign");
             currencyModel = new CurrencyModel(id, code, fullname, sign);
         }
-        if (currencyModel == null) throw new NotFoundCurrencyException("Валюта с таким кодом не найдена в БД");
+        if (currencyModel == null) throw new NotFoundCurrencyException();
         return currencyModel;
     }
 
@@ -52,7 +52,7 @@ class Read extends CRUD{
             String sign = resultSet.getString("Sign");
             currencyModel = new CurrencyModel(id, code, fullname, sign);
         }
-        if (currencyModel == null) throw new NotFoundCurrencyException("Валюта с таким ID не найдена в БД");
+        if (currencyModel == null) throw new NotFoundCurrencyException();
         return currencyModel;
     }
 
@@ -102,8 +102,8 @@ class Read extends CRUD{
         CurrencyModel targetCurrencyModel = null;
 
         try {
-            baseCurrencyModel = getCurrency(requestExchangeRateDTO.getBaseCurrency());
-            targetCurrencyModel = getCurrency(requestExchangeRateDTO.getTargetCurrncy());
+            baseCurrencyModel = getCurrencyCode(requestExchangeRateDTO.getBaseCurrency());
+            targetCurrencyModel = getCurrencyCode(requestExchangeRateDTO.getTargetCurrncy());
 
             PreparedStatement preparedStatement = connection.prepareStatement(SELECT_EXCHANGE_RATE);
             preparedStatement.setInt(1, baseCurrencyModel.getId());
@@ -118,7 +118,7 @@ class Read extends CRUD{
 
             if (exchangeRateModel == null) throw new NotFoundCurrencyException();
         } catch (NotFoundCurrencyException e) {
-            throw new NotFoundExchangeRateException("Обменный курс не найден");
+            throw new NotFoundExchangeRateException();
         }
         return exchangeRateModel;
     }
