@@ -12,6 +12,5 @@ import java.io.PrintWriter;
 public class BaseServlet extends HttpServlet {
 
     protected ObjectMapper objectMapper = new ObjectMapper();
-
-
+    protected PrintWriter printWriter;
 }

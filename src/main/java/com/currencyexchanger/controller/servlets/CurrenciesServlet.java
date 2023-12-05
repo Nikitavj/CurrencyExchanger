@@ -6,11 +6,11 @@ import com.currencyexchanger.controller.Validator;
 import com.currencyexchanger.controller.exception.InvalidCurrencyCodeException;
 import com.currencyexchanger.model.CurrencyModel;
 import com.currencyexchanger.repository.JDBCRepsitory;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.nio.file.FileAlreadyExistsException;
 import java.sql.SQLException;
 import java.util.List;
@@ -20,8 +20,8 @@ public class CurrenciesServlet extends BaseServlet {
 
     @Override
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        response.setContentType("text/html");
-        PrintWriter printWriter = response.getWriter();
+       response.setContentType("application/json");
+
         List<CurrencyModel> list = null;
 
         try {
@@ -37,7 +37,7 @@ public class CurrenciesServlet extends BaseServlet {
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        PrintWriter printWriter = response.getWriter();
+        response.setContentType("application/json");
         CurrencyModel currencyModel = null;
 
         String name = request.getParameter("name");
@@ -60,5 +60,11 @@ public class CurrenciesServlet extends BaseServlet {
             response.setStatus(response.SC_BAD_REQUEST);
             printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
         }
+    }
+
+    @Override
+    protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        printWriter = resp.getWriter();
+        super.service(req, resp);
     }
 }
