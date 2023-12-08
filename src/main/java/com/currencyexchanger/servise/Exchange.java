@@ -1,86 +1,114 @@
 package com.currencyexchanger.servise;
+
 import com.currencyexchanger.DTO.RequestExchangeDTO;
 import com.currencyexchanger.DTO.RequestExchangeRateDTO;
+import com.currencyexchanger.controller.exception.DatabaseException;
 import com.currencyexchanger.controller.exception.NotFoundExchangeRateException;
 import com.currencyexchanger.model.ExchangeModel;
 import com.currencyexchanger.model.ExchangeRateModel;
 import com.currencyexchanger.repository.JDBCRepsitory;
 import java.math.BigDecimal;
-import java.sql.SQLException;
+import java.util.Optional;
 
 import static java.math.BigDecimal.ROUND_FLOOR;
 
 public class Exchange {
 
-    public static ExchangeModel exchange(RequestExchangeDTO request) throws SQLException {
-        ExchangeModel exchangeModel = null;
+    public static Optional<ExchangeModel> exchange(RequestExchangeDTO request) throws NotFoundExchangeRateException, DatabaseException {
 
-        exchangeModel = getDirectExchangeRate(request);
-        if (exchangeModel != null) return exchangeModel;
+        Optional<ExchangeModel> exchangeOptional = getDirectExchangeRate(request);
 
-        exchangeModel = getReverseExchangeRate(request);
-        if(exchangeModel != null) return exchangeModel;
+        if (exchangeOptional.isPresent()) {
+            return exchangeOptional;
+        }
 
-        exchangeModel = getCalculatedExchangeRate(request);
-        if(exchangeModel != null) return exchangeModel;
+        exchangeOptional = getReverseExchangeRate(request);
+        if (exchangeOptional.isPresent()) {
+            return exchangeOptional;
+        }
 
-        return exchangeModel;
+        exchangeOptional = getCalculatedExchangeRate(request);
+        if (exchangeOptional.isPresent()) {
+            return exchangeOptional;
+        }
+
+        return Optional.empty();
     }
 
-    private static ExchangeModel getDirectExchangeRate(RequestExchangeDTO requestExchangeDTO) throws SQLException {
-        ExchangeRateModel exchangeRateModel = null;
-        ExchangeModel exchangeModel = new ExchangeModel();
-        try {
-            RequestExchangeRateDTO exchangeRateDTO = new RequestExchangeRateDTO(requestExchangeDTO.getBaseCurrency(), requestExchangeDTO.getTargetCurrency());
-            exchangeRateModel = JDBCRepsitory.readExchangeRate(exchangeRateDTO);
+    private static Optional<ExchangeModel> getDirectExchangeRate(RequestExchangeDTO requestExchangeDTO) throws NotFoundExchangeRateException, DatabaseException {
 
-            exchangeModel.setBaseCurrency(exchangeRateModel.getBaseCurrency());
-            exchangeModel.setTargetCurrency(exchangeRateModel.getTargetCurrency());
-            exchangeModel.setRate(exchangeRateModel.getRate());
-            exchangeModel.setAmount(requestExchangeDTO.getAmount());
-            exchangeModel.setConvertedAmount(requestExchangeDTO.getAmount().multiply(exchangeRateModel.getRate()).setScale(2, ROUND_FLOOR));
-        } catch (NotFoundExchangeRateException e) {
-            return null;
+        ExchangeModel exchangeModel = new ExchangeModel();
+
+        RequestExchangeRateDTO exchangeRateDTO = new RequestExchangeRateDTO(requestExchangeDTO.getBaseCurrency(),
+                requestExchangeDTO.getTargetCurrency());
+
+        Optional<ExchangeRateModel> exchangeRateOptional = JDBCRepsitory.readExchangeRate(exchangeRateDTO);
+
+        if (exchangeRateOptional.isEmpty()) {
+            return Optional.empty();
         }
-        return exchangeModel;
+
+        ExchangeRateModel exchangeRateModel = exchangeRateOptional.get();
+        exchangeModel.setBaseCurrency(exchangeRateModel.getBaseCurrency());
+        exchangeModel.setTargetCurrency(exchangeRateModel.getTargetCurrency());
+        exchangeModel.setRate(exchangeRateModel.getRate());
+        exchangeModel.setAmount(requestExchangeDTO.getAmount());
+        exchangeModel.setConvertedAmount(requestExchangeDTO.getAmount()
+                .multiply(exchangeRateModel.getRate())
+                .setScale(2, ROUND_FLOOR));
+
+        return Optional.of(exchangeModel);
     }
 
-    private static ExchangeModel getReverseExchangeRate(RequestExchangeDTO requestExchangeDTO) throws SQLException {
-        ExchangeRateModel exchangeRateModel = null;
-        ExchangeModel exchangeModel = new ExchangeModel();
-        try {
-            RequestExchangeRateDTO exchangeRateDTO = new RequestExchangeRateDTO(requestExchangeDTO.getTargetCurrency(), requestExchangeDTO.getBaseCurrency());
-            exchangeRateModel = JDBCRepsitory.readExchangeRate(exchangeRateDTO);
+    private static Optional<ExchangeModel> getReverseExchangeRate(RequestExchangeDTO requestExchangeDTO) throws NotFoundExchangeRateException, DatabaseException {
 
-            exchangeModel.setBaseCurrency(exchangeRateModel.getTargetCurrency());
-            exchangeModel.setTargetCurrency(exchangeRateModel.getBaseCurrency());
-            exchangeModel.setRate(new BigDecimal(1).divide(exchangeRateModel.getRate(),6, ROUND_FLOOR));
-            exchangeModel.setAmount(requestExchangeDTO.getAmount());
-            exchangeModel.setConvertedAmount(requestExchangeDTO.getAmount().divide(exchangeRateModel.getRate(),2, ROUND_FLOOR));
-        } catch (NotFoundExchangeRateException e) {
-            return null;
+        ExchangeModel exchangeModel = new ExchangeModel();
+
+        RequestExchangeRateDTO exchangeRateDTO = new RequestExchangeRateDTO(requestExchangeDTO.getTargetCurrency(),
+                requestExchangeDTO.getBaseCurrency());
+
+        Optional<ExchangeRateModel> exchangeRateOptional = JDBCRepsitory.readExchangeRate(exchangeRateDTO);
+        if (exchangeRateOptional.isEmpty()) {
+            return Optional.empty();
         }
-        return exchangeModel;
+
+        ExchangeRateModel exchangeRateModel = exchangeRateOptional.get();
+        exchangeModel.setBaseCurrency(exchangeRateModel.getTargetCurrency());
+        exchangeModel.setTargetCurrency(exchangeRateModel.getBaseCurrency());
+        exchangeModel.setRate(new BigDecimal(1).divide(exchangeRateModel.getRate(), 6, ROUND_FLOOR));
+        exchangeModel.setAmount(requestExchangeDTO.getAmount());
+        exchangeModel.setConvertedAmount(requestExchangeDTO.getAmount()
+                .divide(exchangeRateModel.getRate(), 2, ROUND_FLOOR));
+
+        return Optional.of(exchangeModel);
     }
 
-    private static ExchangeModel getCalculatedExchangeRate(RequestExchangeDTO requestExchangeDTO) throws SQLException {
+    private static Optional<ExchangeModel> getCalculatedExchangeRate(RequestExchangeDTO requestExchangeDTO) throws NotFoundExchangeRateException, DatabaseException {
+
         ExchangeModel exchangeModel = new ExchangeModel();
 
-        try {
-            RequestExchangeRateDTO baseExchangeRateDTO = new RequestExchangeRateDTO("USD", requestExchangeDTO.getBaseCurrency());
-            ExchangeRateModel baseEexchangeRateModel = JDBCRepsitory.readExchangeRate(baseExchangeRateDTO);
-            RequestExchangeRateDTO targetExchangeRateDTO = new RequestExchangeRateDTO("USD", requestExchangeDTO.getTargetCurrency());
-            ExchangeRateModel targetEexchangeRateModel = JDBCRepsitory.readExchangeRate(targetExchangeRateDTO);
+        RequestExchangeRateDTO baseExchangeRateDTO = new RequestExchangeRateDTO("USD", requestExchangeDTO.getBaseCurrency());
+        RequestExchangeRateDTO targetExchangeRateDTO = new RequestExchangeRateDTO("USD", requestExchangeDTO.getTargetCurrency());
 
-            exchangeModel.setBaseCurrency(baseEexchangeRateModel.getTargetCurrency());
-            exchangeModel.setTargetCurrency(targetEexchangeRateModel.getTargetCurrency());
-            exchangeModel.setRate(targetEexchangeRateModel.getRate().divide(baseEexchangeRateModel.getRate(), 6, ROUND_FLOOR));
-            exchangeModel.setAmount(requestExchangeDTO.getAmount());
-            exchangeModel.setConvertedAmount(requestExchangeDTO.getAmount().multiply(exchangeModel.getRate()).setScale(2, ROUND_FLOOR));
+        Optional<ExchangeRateModel> baseModelOptional = JDBCRepsitory.readExchangeRate(baseExchangeRateDTO);
+        Optional<ExchangeRateModel> targetModelOptional = JDBCRepsitory.readExchangeRate(targetExchangeRateDTO);
 
-        } catch (NotFoundExchangeRateException e) {
-            return null;
+        if (baseModelOptional.isEmpty() || targetModelOptional.isEmpty()) {
+            return Optional.empty();
         }
-        return exchangeModel;
+
+        ExchangeRateModel baseEexchangeRateModel = baseModelOptional.get();
+        ExchangeRateModel targetEexchangeRateModel = targetModelOptional.get();
+
+        exchangeModel.setBaseCurrency(baseEexchangeRateModel.getTargetCurrency());
+        exchangeModel.setTargetCurrency(targetEexchangeRateModel.getTargetCurrency());
+        exchangeModel.setRate(targetEexchangeRateModel.getRate()
+                .divide(baseEexchangeRateModel.getRate(), 6, ROUND_FLOOR));
+        exchangeModel.setAmount(requestExchangeDTO.getAmount());
+        exchangeModel.setConvertedAmount(requestExchangeDTO.getAmount()
+                .multiply(exchangeModel.getRate())
+                .setScale(2, ROUND_FLOOR));
+
+        return Optional.of(exchangeModel);
     }
 }

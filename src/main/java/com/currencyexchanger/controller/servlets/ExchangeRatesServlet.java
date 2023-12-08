@@ -13,7 +13,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.FileAlreadyExistsException;
-import java.sql.SQLException;
 import java.util.List;
 
 @WebServlet(name = "exchangeRates", value = "/exchangeRates")
@@ -26,11 +25,7 @@ public class ExchangeRatesServlet extends BaseServlet {
             List<ExchangeRateModel> list = JDBCRepsitory.readExchangeRates();
             printWriter.println(objectMapper.writeValueAsString(list));
 
-        } catch (NotFoundExchangeRateException e) {
-            response.setStatus(response.SC_NOT_FOUND);
-            printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
-
-        } catch (SQLException e) {
+        } catch (DatabaseException e) {
             response.setStatus(response.SC_INTERNAL_SERVER_ERROR);
             printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
         }
@@ -49,27 +44,21 @@ public class ExchangeRatesServlet extends BaseServlet {
             BigDecimal rate = new BigDecimal(stringRate);
             RequestExchangeRateDTO requestDTO = new RequestExchangeRateDTO(baseCurrencyCode, targetCurrencyCode, rate);
 
-            ExchangeRateModel exchangeRateModel = JDBCRepsitory.createExchangeRate(requestDTO);
+            ExchangeRateModel exchangeRateModel = JDBCRepsitory.createExchangeRate(requestDTO)
+                    .orElseThrow(DatabaseException::new);
             printWriter.println(objectMapper.writeValueAsString(exchangeRateModel));
+
+        } catch (InvalidCurrencyCodeException | InvalidRateCodeException
+                 | InvalidParametersException | NotFoundCurrencyException e) {
+            response.setStatus(response.SC_BAD_REQUEST);
+            printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
 
         } catch (FileAlreadyExistsException e) {
             response.setStatus(response.SC_CONFLICT);
             printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
 
-        } catch (InvalidCurrencyCodeException e) {
-            response.setStatus(response.SC_BAD_REQUEST);
-            printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
-
-        } catch (InvalidRateCodeException e) {
-            response.setStatus(response.SC_BAD_REQUEST);
-            printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
-
-        } catch (InvalidParametersException e) {
-            response.setStatus(response.SC_BAD_REQUEST);
-            printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
-
-        } catch (NotFoundCurrencyException e) {
-            response.setStatus(response.SC_BAD_REQUEST);
+        } catch (DatabaseException e) {
+            response.setStatus(response.SC_INTERNAL_SERVER_ERROR);
             printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
         }
     }

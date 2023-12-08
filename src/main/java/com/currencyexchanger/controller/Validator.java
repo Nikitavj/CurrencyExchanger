@@ -39,10 +39,12 @@ public class Validator {
         if (stringRate == null || stringRate.equals("")) throw new InvalidParametersException("stringRate");
     }
 
-    public static void validateExchangeParameters(String from, String to, String stringAmount) throws InvalidParametersException {
+    public static void validateExchangeParameters(String from, String to, String stringAmount) throws InvalidParametersException, InvalidCurrencyCodeException {
 
         if (from == null || from.equals(""))throw new InvalidParametersException("from");
         if (to == null || to.equals(""))throw new InvalidParametersException("to");
         if (stringAmount == null || stringAmount.equals(""))throw new InvalidParametersException("stringAmount");
+        validateCurrencyCode(from);
+        validateCurrencyCode(to);
     }
 }

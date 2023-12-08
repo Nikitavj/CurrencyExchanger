@@ -3,6 +3,7 @@ package com.currencyexchanger.controller.servlets;
 import com.currencyexchanger.DTO.ErrorDTO;
 import com.currencyexchanger.DTO.RequestCurrencyDTO;
 import com.currencyexchanger.controller.Validator;
+import com.currencyexchanger.controller.exception.DatabaseException;
 import com.currencyexchanger.controller.exception.InvalidCurrencyCodeException;
 import com.currencyexchanger.controller.exception.NotFoundCurrencyException;
 import com.currencyexchanger.model.CurrencyModel;
@@ -12,7 +13,6 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.sql.SQLException;
 
 @WebServlet(name = "currencyServlet", urlPatterns = "/currency/*")
 public class CurrencyServlet extends BaseServlet {
@@ -25,7 +25,8 @@ public class CurrencyServlet extends BaseServlet {
 
             RequestCurrencyDTO requestCurrencyDTO = new RequestCurrencyDTO(code);
 
-            CurrencyModel currencyModelObj = JDBCRepsitory.readCurrency(requestCurrencyDTO);
+            CurrencyModel currencyModelObj = JDBCRepsitory.readCurrency(requestCurrencyDTO)
+                    .orElseThrow(DatabaseException::new);
             printWriter.println(objectMapper.writeValueAsString(currencyModelObj));
 
         } catch (InvalidCurrencyCodeException e) {
@@ -36,7 +37,7 @@ public class CurrencyServlet extends BaseServlet {
             response.setStatus(response.SC_NOT_FOUND);
             printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
 
-        } catch (SQLException e) {
+        } catch (DatabaseException e) {
             response.setStatus(response.SC_INTERNAL_SERVER_ERROR);
             printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
         }

@@ -3,45 +3,43 @@ package com.currencyexchanger.repository;
 import com.currencyexchanger.DTO.RequestCurrenciesDTO;
 import com.currencyexchanger.DTO.RequestCurrencyDTO;
 import com.currencyexchanger.DTO.RequestExchangeRateDTO;
+import com.currencyexchanger.controller.exception.DatabaseException;
 import com.currencyexchanger.controller.exception.NotFoundCurrencyException;
 import com.currencyexchanger.controller.exception.NotFoundExchangeRateException;
 import com.currencyexchanger.model.CurrencyModel;
 import com.currencyexchanger.model.ExchangeRateModel;
-
 import java.nio.file.FileAlreadyExistsException;
-import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 
 
- public class JDBCRepsitory {
+public class JDBCRepsitory {
 
-    public static CurrencyModel readCurrency(RequestCurrencyDTO requestCurrencyDTO) throws SQLException, NotFoundCurrencyException {
+    public static Optional<CurrencyModel> readCurrency(RequestCurrencyDTO requestCurrencyDTO) throws NotFoundCurrencyException, DatabaseException {
         return Read.getCurrencyCode(requestCurrencyDTO.getCode());
     }
 
-    public static List<CurrencyModel> readCurrencies () throws SQLException {
+    public static List<CurrencyModel> readCurrencies () throws DatabaseException {
         return Read.getCurrencies();
     }
 
-    public static ExchangeRateModel readExchangeRate(RequestExchangeRateDTO requestDTO) throws SQLException, NotFoundExchangeRateException {
+    public static Optional<ExchangeRateModel> readExchangeRate(RequestExchangeRateDTO requestDTO) throws NotFoundExchangeRateException, DatabaseException {
         return Read.getExchangeRate(requestDTO);
     }
 
-    public static List<ExchangeRateModel> readExchangeRates() throws SQLException, NotFoundExchangeRateException {
+    public static List<ExchangeRateModel> readExchangeRates() throws DatabaseException {
         return Read.getExchangeRates();
     }
 
-    public static CurrencyModel createCurrency(RequestCurrenciesDTO requestDTO) throws FileAlreadyExistsException, NoSuchFieldException {
+    public static Optional<CurrencyModel> createCurrency(RequestCurrenciesDTO requestDTO) throws FileAlreadyExistsException, NoSuchFieldException, DatabaseException {
        return Create.addCurrency(requestDTO.getCode(), requestDTO.getName(), requestDTO.getSign());
     }
 
-    public static ExchangeRateModel createExchangeRate(RequestExchangeRateDTO requestDTO) throws NotFoundCurrencyException, FileAlreadyExistsException {
+    public static Optional<ExchangeRateModel> createExchangeRate(RequestExchangeRateDTO requestDTO) throws NotFoundCurrencyException, FileAlreadyExistsException, DatabaseException {
         return Create.addExchangeRate(requestDTO);
     }
 
-    public static ExchangeRateModel updateExchangeRate(RequestExchangeRateDTO requestDTO) throws SQLException, NotFoundExchangeRateException {
+    public static Optional<ExchangeRateModel> updateExchangeRate(RequestExchangeRateDTO requestDTO) throws NotFoundExchangeRateException, DatabaseException {
         return Update.updateExchangeRate(requestDTO);
     }
-
-
 }
