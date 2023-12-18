@@ -14,6 +14,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static java.math.BigDecimal.ROUND_FLOOR;
+
 class Read extends CRUD{
 
     private static String SELECT_ALL_CURRENCIES = "SELECT * FROM currencies;";
@@ -35,7 +37,7 @@ class Read extends CRUD{
                 String fullname = resultSet.getString("Fullname");
                 String sign = resultSet.getString("Sign");
 
-                CurrencyModel currencyModel = new CurrencyModel(id, code, fullname, sign);
+                CurrencyModel currencyModel = new CurrencyModel(id, fullname, code, sign);
                 return Optional.of(currencyModel);
             }
 
@@ -59,7 +61,7 @@ class Read extends CRUD{
                 String fullname = resultSet.getString("Fullname");
                 String sign = resultSet.getString("Sign");
 
-                CurrencyModel currencyModel = new CurrencyModel(id, code, fullname, sign);
+                CurrencyModel currencyModel = new CurrencyModel(id, fullname, code, sign);
                 return Optional.of(currencyModel);
             }
 
@@ -83,7 +85,7 @@ class Read extends CRUD{
                 String fullname = resultSet.getString("Fullname");
                 String sign = resultSet.getString("Sign");
 
-                CurrencyModel currencyModel = new CurrencyModel(id, code, fullname, sign);
+                CurrencyModel currencyModel = new CurrencyModel(id, fullname, code, sign);
                 dtoList.add(currencyModel);
             }
 
@@ -104,7 +106,7 @@ class Read extends CRUD{
                 int id = resultSet.getInt(1);
                 int baseCurrencyId = resultSet.getInt(2);
                 int targetCurrencyId = resultSet.getInt(3);
-                BigDecimal rate = resultSet.getBigDecimal(4);
+                BigDecimal rate = resultSet.getBigDecimal(4).setScale(6, ROUND_FLOOR);
 
                 CurrencyModel baseCurrencyModel = getCurrencyID(baseCurrencyId)
                         .orElseThrow(NotFoundCurrencyException::new);
@@ -136,7 +138,7 @@ class Read extends CRUD{
 
             while (resultSet.next()) {
                 int id = resultSet.getInt(1);
-                BigDecimal rate = resultSet.getBigDecimal(4);
+                BigDecimal rate = resultSet.getBigDecimal(4).setScale(6, ROUND_FLOOR);;
 
                 ExchangeRateModel exchangeRateModel = new ExchangeRateModel(id, baseCurrencyModel, targetCurrencyModel, rate);
                 return Optional.of(exchangeRateModel);

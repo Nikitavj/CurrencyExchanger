@@ -30,11 +30,8 @@ class Create extends CRUD{
             throw new DatabaseException();
 
         } catch (SQLException e) {
-            if (e.getErrorCode() == 1062) {
+            if (e.getErrorCode() == 19) {
                 throw new FileAlreadyExistsException("Запись в БД уже существует");
-            }
-            if (e.getErrorCode() == 1048) {
-                throw new NoSuchFieldException("Отсутсвует параметр в запросе");
             }
         }
 
@@ -58,7 +55,7 @@ class Create extends CRUD{
             return Read.getExchangeRate(requestDTO);
 
         } catch (SQLException e) {
-            if (e.getErrorCode() == 1062) throw new FileAlreadyExistsException("Валютная пара с таким кодом уже существует");
+            if (e.getErrorCode() == 19) throw new FileAlreadyExistsException("Валютная пара с таким кодом уже существует");
         } catch (NotFoundExchangeRateException e) {
             throw new DatabaseException();
         }

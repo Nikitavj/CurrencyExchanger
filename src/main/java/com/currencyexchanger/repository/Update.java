@@ -9,7 +9,7 @@ import java.sql.SQLException;
 import java.util.Optional;
 
 class Update extends CRUD {
-    private static final String UPDATE_EXCHANGE_RATE = "UPDATE exchangerates SET rate = ? WHERE ID = ?;";
+    private static final String UPDATE_EXCHANGE_RATE = "UPDATE exchangerates SET rate = ? WHERE ID = ?";
 
     protected static Optional<ExchangeRateModel> updateExchangeRate(RequestExchangeRateDTO request) throws NotFoundExchangeRateException, DatabaseException {
 

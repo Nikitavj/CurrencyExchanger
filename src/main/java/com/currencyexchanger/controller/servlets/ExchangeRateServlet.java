@@ -3,10 +3,7 @@ package com.currencyexchanger.controller.servlets;
 import com.currencyexchanger.DTO.ErrorDTO;
 import com.currencyexchanger.DTO.RequestExchangeRateDTO;
 import com.currencyexchanger.controller.Validator;
-import com.currencyexchanger.controller.exception.DatabaseException;
-import com.currencyexchanger.controller.exception.InvalidCurrencyCodeException;
-import com.currencyexchanger.controller.exception.InvalidRateCodeException;
-import com.currencyexchanger.controller.exception.NotFoundExchangeRateException;
+import com.currencyexchanger.controller.exception.*;
 import com.currencyexchanger.model.ExchangeRateModel;
 import com.currencyexchanger.repository.JDBCRepsitory;
 import jakarta.servlet.ServletException;
@@ -31,7 +28,7 @@ public class ExchangeRateServlet extends BaseServlet {
             RequestExchangeRateDTO requestExchangeRateDTO = new RequestExchangeRateDTO(baseCurrensyCode, targetCurrensyCode);
 
             ExchangeRateModel exchangeRateModel = JDBCRepsitory.readExchangeRate(requestExchangeRateDTO)
-                    .orElseThrow(DatabaseException::new);
+                    .orElseThrow(NotFoundExchangeRateException::new);
             printWriter.println(objectMapper.writeValueAsString(exchangeRateModel));
 
         } catch (InvalidRateCodeException | InvalidCurrencyCodeException e) {
@@ -51,10 +48,12 @@ public class ExchangeRateServlet extends BaseServlet {
 
     protected void doPatch(HttpServletRequest request, HttpServletResponse response) throws IOException {
         String rateCode = request.getPathInfo().replaceAll("/", "");
-        String rateParameter = request.getParameter("rate");
+        String parameter = request.getReader().readLine();
+        String rateParameter = parameter.replaceAll("rate=", "");
 
         try {
             Validator.validateRateCode(rateCode);
+            Validator.validateParameter(rateParameter);
 
             BigDecimal rate = new BigDecimal(rateParameter);
             String baseCurrensyCode = rateCode.substring(0, 3);
@@ -65,7 +64,9 @@ public class ExchangeRateServlet extends BaseServlet {
                     .orElseThrow(DatabaseException::new);
             printWriter.println(objectMapper.writeValueAsString(exchangeRateModel));
 
-        } catch (InvalidCurrencyCodeException | InvalidRateCodeException e) {
+        } catch (InvalidCurrencyCodeException
+                 | InvalidRateCodeException
+                 | InvalidParametersException e) {
             response.setStatus(response.SC_BAD_REQUEST);
             printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
 

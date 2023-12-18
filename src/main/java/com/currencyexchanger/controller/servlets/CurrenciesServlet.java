@@ -5,6 +5,7 @@ import com.currencyexchanger.DTO.RequestCurrenciesDTO;
 import com.currencyexchanger.controller.Validator;
 import com.currencyexchanger.controller.exception.DatabaseException;
 import com.currencyexchanger.controller.exception.InvalidCurrencyCodeException;
+import com.currencyexchanger.controller.exception.InvalidParametersException;
 import com.currencyexchanger.model.CurrencyModel;
 import com.currencyexchanger.repository.JDBCRepsitory;
 import jakarta.servlet.ServletException;
@@ -13,8 +14,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
-import java.rmi.ServerException;
-import java.sql.SQLException;
 import java.util.List;
 
 @WebServlet(name = "currenciesServlet", value = "/currencies")
@@ -40,6 +39,7 @@ public class CurrenciesServlet extends BaseServlet {
         String sign = request.getParameter("sign");
 
         try {
+            Validator.validateParameters(name, code, sign);
             Validator.validateCurrencyCode(code);
             RequestCurrenciesDTO requestCurrenciesDTO = new RequestCurrenciesDTO(name, code, sign);
 
@@ -48,7 +48,9 @@ public class CurrenciesServlet extends BaseServlet {
 
             printWriter.println(objectMapper.writeValueAsString(currencyModel));
 
-        } catch (InvalidCurrencyCodeException | NoSuchFieldException  e) {
+        } catch (InvalidCurrencyCodeException
+                 | NoSuchFieldException
+                 | InvalidParametersException  e) {
             response.setStatus(response.SC_BAD_REQUEST);
             printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
 

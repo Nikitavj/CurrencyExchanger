@@ -33,7 +33,7 @@ public class ExchangeServlet extends BaseServlet {
             RequestExchangeDTO requestDTO = new RequestExchangeDTO(from, to, amount);
 
             ExchangeModel exchangeModel = Exchange.exchange(requestDTO)
-                    .orElseThrow(DatabaseException::new);
+                    .orElseThrow(NotFoundExchangeRateException::new);
             printWriter.println(objectMapper.writeValueAsString(exchangeModel));
 
         } catch (InvalidParametersException | InvalidCurrencyCodeException e) {

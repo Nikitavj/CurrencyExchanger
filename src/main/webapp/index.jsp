@@ -2,12 +2,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>JSP - Hello World</title>
+    <title>CurrencyExchanger</title>
 </head>
 <body>
-<h1><%= "Hello World!" %>
+<h1><%= "CurrencyExchanger" %>
 </h1>
 <br/>
-<a href="hello-servlet">Hello Servlet</a>
 </body>
 </html>

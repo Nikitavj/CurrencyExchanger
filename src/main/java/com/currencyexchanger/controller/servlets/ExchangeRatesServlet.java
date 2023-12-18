@@ -38,7 +38,7 @@ public class ExchangeRatesServlet extends BaseServlet {
         String stringRate = request.getParameter("rate");
 
         try {
-            Validator.validateRatesParameter(baseCurrencyCode, targetCurrencyCode, stringRate);
+            Validator.validateParameters(baseCurrencyCode, targetCurrencyCode, stringRate);
             Validator.validateRateCode(baseCurrencyCode + targetCurrencyCode);
 
             BigDecimal rate = new BigDecimal(stringRate);

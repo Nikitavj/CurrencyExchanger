@@ -5,5 +5,5 @@ import com.currencyexchanger.utils.DBUtils;
 import java.sql.Connection;
 class CRUD {
 
-    protected static Connection connection = DBUtils.getConnect();
+    protected static Connection connection = DBUtils.getConnect().get();
 }

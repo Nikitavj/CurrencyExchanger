@@ -1,41 +1,31 @@
 package com.currencyexchanger.utils;
 
-import java.io.IOException;
-import java.io.InputStream;
+import com.currencyexchanger.controller.exception.DatabaseException;
+import java.io.File;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.Properties;
+import java.util.Optional;
 
 public class DBUtils {
 
-    public static Connection getConnect() {
-        Connection connection = null;
-        String url = null;
-        String user = null;
-        String password = null;
+    public static Optional<Connection> getConnect() {
 
-        try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
         ClassLoader loader = DBUtils.class.getClassLoader();
-        Properties properties = new Properties();
 
-        try (InputStream in = loader.getResourceAsStream("database.properties")) {
-            properties.load(in);
-            url = properties.getProperty("url");
-            user = properties.getProperty("user");
-            password = properties.getProperty("password");
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
         try {
-            connection = DriverManager.getConnection(url, user, password);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
+            Class.forName("org.sqlite.JDBC");
+            URL res = loader.getResource("exchanger.db");
+            File file = new File(res.getFile());
+            String dbPath = "jdbc:sqlite://" + file.getAbsolutePath();
+
+            Connection connection = DriverManager.getConnection(dbPath);
+            return Optional.of(connection);
+
+        } catch (SQLException | ClassNotFoundException e) {
+            new DatabaseException();
         }
-        return connection;
+        return Optional.empty();
     }
 }
