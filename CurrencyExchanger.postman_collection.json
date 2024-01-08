@@ -1,0 +1,217 @@
+{
+	"info": {
+		"_postman_id": "683523ed-77d2-4885-90f1-0da2846aac04",
+		"name": "CurrencyExchanger",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "31313866"
+	},
+	"item": [
+		{
+			"name": "currencies",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/currencies",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"currencies"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "currency/EUR",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/currency/EUR",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"currency",
+						"EUR"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "currencies/?name=Ruble&sign=s&code=RUB",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/currencies?name=Dollar&code=USD&sign=$",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"currencies"
+					],
+					"query": [
+						{
+							"key": "name",
+							"value": "Dollar"
+						},
+						{
+							"key": "code",
+							"value": "USD"
+						},
+						{
+							"key": "sign",
+							"value": "$"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "exchangeRates",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/exchangeRates",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"exchangeRates"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "exchangeRate/USDRUB",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/exchangeRate/USDEUR",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"exchangeRate",
+						"USDEUR"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "exchangeRates?baseCurrencyCode=USD&targetCurrencyCode=RUB&rate=34",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/exchangeRates?baseCurrencyCode=USD&targetCurrencyCode=EUR&rate=0.98",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"exchangeRates"
+					],
+					"query": [
+						{
+							"key": "baseCurrencyCode",
+							"value": "USD"
+						},
+						{
+							"key": "targetCurrencyCode",
+							"value": "EUR"
+						},
+						{
+							"key": "rate",
+							"value": "0.98"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "http://localhost:8080/exchange?from=USD&to=EUR&amount=444",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/exchange?from=EUR&to=USD&amount=45",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"exchange"
+					],
+					"query": [
+						{
+							"key": "from",
+							"value": "EUR"
+						},
+						{
+							"key": "to",
+							"value": "USD"
+						},
+						{
+							"key": "amount",
+							"value": "45"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "exchangeRate/USDRUB?rate=94",
+			"request": {
+				"method": "PATCH",
+				"header": [],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "rate",
+							"value": "63",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "http://localhost:8080/exchangeRate/USDEUR",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"exchangeRate",
+						"USDEUR"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
