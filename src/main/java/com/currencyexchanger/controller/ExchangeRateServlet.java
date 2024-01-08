@@ -1,20 +1,22 @@
-package com.currencyexchanger.controller.servlets;
+package com.currencyexchanger.controller;
 
 import com.currencyexchanger.DTO.ErrorDTO;
-import com.currencyexchanger.DTO.RequestExchangeRateDTO;
-import com.currencyexchanger.controller.Validator;
-import com.currencyexchanger.controller.exception.*;
+import com.currencyexchanger.DTO.ReqExchangeRateDTO;
+import com.currencyexchanger.dao.JdbcExchangeRateDAO;
+import com.currencyexchanger.exception.*;
 import com.currencyexchanger.model.ExchangeRateModel;
-import com.currencyexchanger.repository.JDBCRepsitory;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.sql.SQLException;
+import java.util.Optional;
 
 @WebServlet(name = "exchangeRate", value = "/exchangeRate/*")
 public class ExchangeRateServlet extends BaseServlet {
+    JdbcExchangeRateDAO dao = new JdbcExchangeRateDAO();
 
     @Override
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -25,28 +27,32 @@ public class ExchangeRateServlet extends BaseServlet {
 
             String baseCurrensyCode = rateCode.substring(0, 3);
             String targetCurrensyCode = rateCode.substring(3, 6);
-            RequestExchangeRateDTO requestExchangeRateDTO = new RequestExchangeRateDTO(baseCurrensyCode, targetCurrensyCode);
+            ReqExchangeRateDTO req = new ReqExchangeRateDTO(baseCurrensyCode, targetCurrensyCode);
 
-            ExchangeRateModel exchangeRateModel = JDBCRepsitory.readExchangeRate(requestExchangeRateDTO)
-                    .orElseThrow(NotFoundExchangeRateException::new);
-            printWriter.println(objectMapper.writeValueAsString(exchangeRateModel));
+            Optional<ExchangeRateModel> rate = dao.readeByCodes(req);
+
+            if (rate.isEmpty()) {
+                throw new NotFoundExchangeRateException("Обменный курс не найден в БД!");
+            }
+
+            pWriter.println(objMapper.writeValueAsString(rate.get()));
 
         } catch (InvalidRateCodeException | InvalidCurrencyCodeException e) {
             response.setStatus(response.SC_BAD_REQUEST);
-            printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
+            pWriter.println(objMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
 
         } catch (NotFoundExchangeRateException e) {
             response.setStatus(response.SC_NOT_FOUND);
-            printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
+            pWriter.println(objMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
 
-        } catch (DatabaseException e) {
+        } catch (SQLException e) {
             response.setStatus(response.SC_INTERNAL_SERVER_ERROR);
-            printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
+            pWriter.println(objMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
         }
     }
 
-
     protected void doPatch(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        JdbcExchangeRateDAO dao = new JdbcExchangeRateDAO();
         String rateCode = request.getPathInfo().replaceAll("/", "");
         String parameter = request.getReader().readLine();
         String rateParameter = parameter.replaceAll("rate=", "");
@@ -58,31 +64,35 @@ public class ExchangeRateServlet extends BaseServlet {
             BigDecimal rate = new BigDecimal(rateParameter);
             String baseCurrensyCode = rateCode.substring(0, 3);
             String targetCurrensyCode = rateCode.substring(3, 6);
-            RequestExchangeRateDTO requestExchangeRateDTO = new RequestExchangeRateDTO(baseCurrensyCode, targetCurrensyCode,rate);
+            ReqExchangeRateDTO req = new ReqExchangeRateDTO(baseCurrensyCode, targetCurrensyCode,rate);
 
-            ExchangeRateModel exchangeRateModel = JDBCRepsitory.updateExchangeRate(requestExchangeRateDTO)
-                    .orElseThrow(DatabaseException::new);
-            printWriter.println(objectMapper.writeValueAsString(exchangeRateModel));
+            Optional<ExchangeRateModel> exchangeRate = dao.update(req);
+
+            if (exchangeRate.isEmpty()) {
+                throw new NotFoundExchangeRateException("Обменный курс не найден в БД!");
+            }
+
+            pWriter.println(objMapper.writeValueAsString(exchangeRate.get()));
 
         } catch (InvalidCurrencyCodeException
                  | InvalidRateCodeException
                  | InvalidParametersException e) {
             response.setStatus(response.SC_BAD_REQUEST);
-            printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
+            pWriter.println(objMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
 
         } catch (NotFoundExchangeRateException e) {
             response.setStatus(response.SC_NOT_FOUND);
-            printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
+            pWriter.println(objMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
 
-        } catch (DatabaseException e) {
+        } catch (SQLException e) {
             response.setStatus(response.SC_INTERNAL_SERVER_ERROR);
-            printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
+            pWriter.println(objMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
         }
     }
 
     @Override
     protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        printWriter = response.getWriter();
+        pWriter = response.getWriter();
 
         String method = request.getMethod();
         if (!method.equals("PATCH")) {

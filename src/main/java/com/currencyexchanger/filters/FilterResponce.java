@@ -1,4 +1,4 @@
-package com.currencyexchanger.controller;
+package com.currencyexchanger.filters;
 
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebFilter;

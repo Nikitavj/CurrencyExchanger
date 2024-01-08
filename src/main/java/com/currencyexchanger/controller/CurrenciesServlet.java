@@ -1,34 +1,36 @@
-package com.currencyexchanger.controller.servlets;
+package com.currencyexchanger.controller;
 
 import com.currencyexchanger.DTO.ErrorDTO;
-import com.currencyexchanger.DTO.RequestCurrenciesDTO;
-import com.currencyexchanger.controller.Validator;
-import com.currencyexchanger.controller.exception.DatabaseException;
-import com.currencyexchanger.controller.exception.InvalidCurrencyCodeException;
-import com.currencyexchanger.controller.exception.InvalidParametersException;
+import com.currencyexchanger.DTO.ReqCurrencyDTO;
+import com.currencyexchanger.dao.JdbcCurrencyDAO;
+import com.currencyexchanger.exception.DatabaseException;
+import com.currencyexchanger.exception.InvalidCurrencyCodeException;
+import com.currencyexchanger.exception.InvalidParametersException;
 import com.currencyexchanger.model.CurrencyModel;
-import com.currencyexchanger.repository.JDBCRepsitory;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
+import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 
 @WebServlet(name = "currenciesServlet", value = "/currencies")
 public class CurrenciesServlet extends BaseServlet {
+    JdbcCurrencyDAO dao = new JdbcCurrencyDAO();
 
     @Override
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
 
         try {
-            List<CurrencyModel> list = JDBCRepsitory.readCurrencies();
-            printWriter.println(objectMapper.writeValueAsString(list));
+            List<CurrencyModel> list = dao.readeAll();
+            pWriter.println(objMapper.writeValueAsString(list));
 
-        } catch (DatabaseException e) {
+        } catch (SQLException e) {
             response.setStatus(response.SC_INTERNAL_SERVER_ERROR);
-            printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
+            pWriter.println(objMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
         }
     }
 
@@ -41,32 +43,38 @@ public class CurrenciesServlet extends BaseServlet {
         try {
             Validator.validateParameters(name, code, sign);
             Validator.validateCurrencyCode(code);
-            RequestCurrenciesDTO requestCurrenciesDTO = new RequestCurrenciesDTO(name, code, sign);
+            ReqCurrencyDTO reqCurrencyDTO = new ReqCurrencyDTO(name, code, sign);
 
-            CurrencyModel currencyModel = JDBCRepsitory.createCurrency(requestCurrenciesDTO)
-                    .orElseThrow(DatabaseException::new);
+            Optional<CurrencyModel> currency = dao.create(reqCurrencyDTO);
 
-            printWriter.println(objectMapper.writeValueAsString(currencyModel));
+            if (currency.isEmpty()) {
+                throw new FileAlreadyExistsException("Запись в БД уже существует!");
+            }
+
+            pWriter.println(
+                    objMapper.writeValueAsString(currency.get()));
 
         } catch (InvalidCurrencyCodeException
-                 | NoSuchFieldException
                  | InvalidParametersException  e) {
             response.setStatus(response.SC_BAD_REQUEST);
-            printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
+            pWriter.println(
+                    objMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
 
         } catch (FileAlreadyExistsException e) {
             response.setStatus(response.SC_CONFLICT);
-            printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
+            pWriter.println(
+                    objMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
 
-        } catch (DatabaseException e) {
+        } catch (SQLException e) {
             response.setStatus(response.SC_INTERNAL_SERVER_ERROR);
-            printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
+            pWriter.println(
+                    objMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
         }
     }
 
     @Override
     protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        printWriter = resp.getWriter();
+        pWriter = resp.getWriter();
         super.service(req, resp);
     }
 }

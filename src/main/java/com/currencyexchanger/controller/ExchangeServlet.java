@@ -1,13 +1,14 @@
-package com.currencyexchanger.controller.servlets;
+package com.currencyexchanger.controller;
 
 import com.currencyexchanger.DTO.ErrorDTO;
-import com.currencyexchanger.DTO.RequestExchangeDTO;
-import com.currencyexchanger.controller.Validator;
-import com.currencyexchanger.controller.exception.DatabaseException;
-import com.currencyexchanger.controller.exception.InvalidCurrencyCodeException;
-import com.currencyexchanger.controller.exception.InvalidParametersException;
-import com.currencyexchanger.controller.exception.NotFoundExchangeRateException;
+import com.currencyexchanger.DTO.ReqExchangeDTO;
+import com.currencyexchanger.dao.JdbcExchangeRateDAO;
+import com.currencyexchanger.exception.DatabaseException;
+import com.currencyexchanger.exception.InvalidCurrencyCodeException;
+import com.currencyexchanger.exception.InvalidParametersException;
+import com.currencyexchanger.exception.NotFoundExchangeRateException;
 import com.currencyexchanger.model.ExchangeModel;
+import com.currencyexchanger.model.ExchangeRateModel;
 import com.currencyexchanger.servise.Exchange;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -15,6 +16,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.sql.SQLException;
+import java.util.Optional;
 
 @WebServlet(name = "exchangeServlet", value = "/exchange")
 public class ExchangeServlet extends BaseServlet {
@@ -30,28 +33,28 @@ public class ExchangeServlet extends BaseServlet {
             Validator.validateExchangeParameters(from, to, stringAmount);
 
             BigDecimal amount = new BigDecimal(stringAmount);
-            RequestExchangeDTO requestDTO = new RequestExchangeDTO(from, to, amount);
+            ReqExchangeDTO req = new ReqExchangeDTO(from, to, amount);
 
-            ExchangeModel exchangeModel = Exchange.exchange(requestDTO)
-                    .orElseThrow(NotFoundExchangeRateException::new);
-            printWriter.println(objectMapper.writeValueAsString(exchangeModel));
+            Optional<ExchangeModel> exchange = new Exchange().exchange(req);
+
+            pWriter.println(objMapper.writeValueAsString(exchange.get()));
 
         } catch (InvalidParametersException | InvalidCurrencyCodeException e) {
             response.setStatus(response.SC_BAD_REQUEST);
-            printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
+            pWriter.println(objMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
 
         } catch (NotFoundExchangeRateException e) {
             response.setStatus(response.SC_NOT_FOUND);
-            printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
+            pWriter.println(objMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
 
-        } catch (DatabaseException e) {
+        } catch (DatabaseException | SQLException e) {
             response.setStatus(response.SC_INTERNAL_SERVER_ERROR);
-            printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));        }
+            pWriter.println(objMapper.writeValueAsString(new ErrorDTO(e.getMessage())));        }
     }
 
     @Override
     protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        printWriter = response.getWriter();
+        pWriter = response.getWriter();
         super.service(request, response);
     }
 }

@@ -1,8 +1,8 @@
 package com.currencyexchanger.controller;
 
-import com.currencyexchanger.controller.exception.InvalidCurrencyCodeException;
-import com.currencyexchanger.controller.exception.InvalidParametersException;
-import com.currencyexchanger.controller.exception.InvalidRateCodeException;
+import com.currencyexchanger.exception.InvalidCurrencyCodeException;
+import com.currencyexchanger.exception.InvalidParametersException;
+import com.currencyexchanger.exception.InvalidRateCodeException;
 import java.util.Currency;
 import java.util.Optional;
 import java.util.Set;

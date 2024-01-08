@@ -1,11 +1,10 @@
-package com.currencyexchanger.controller.servlets;
+package com.currencyexchanger.controller;
 
 import com.currencyexchanger.DTO.ErrorDTO;
-import com.currencyexchanger.DTO.RequestExchangeRateDTO;
-import com.currencyexchanger.controller.Validator;
-import com.currencyexchanger.controller.exception.*;
+import com.currencyexchanger.DTO.ReqExchangeRateDTO;
+import com.currencyexchanger.dao.JdbcExchangeRateDAO;
+import com.currencyexchanger.exception.*;
 import com.currencyexchanger.model.ExchangeRateModel;
-import com.currencyexchanger.repository.JDBCRepsitory;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,26 +12,30 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.FileAlreadyExistsException;
+import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 
 @WebServlet(name = "exchangeRates", value = "/exchangeRates")
 public class ExchangeRatesServlet extends BaseServlet {
 
     @Override
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        JdbcExchangeRateDAO dao = new JdbcExchangeRateDAO();
 
         try {
-            List<ExchangeRateModel> list = JDBCRepsitory.readExchangeRates();
-            printWriter.println(objectMapper.writeValueAsString(list));
+            List<ExchangeRateModel> list = dao.readeAll();
+            pWriter.println(objMapper.writeValueAsString(list));
 
-        } catch (DatabaseException e) {
+        } catch (SQLException e) {
             response.setStatus(response.SC_INTERNAL_SERVER_ERROR);
-            printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
+            pWriter.println(objMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
         }
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        JdbcExchangeRateDAO dao = new JdbcExchangeRateDAO();
         String baseCurrencyCode = request.getParameter("baseCurrencyCode");
         String targetCurrencyCode = request.getParameter("targetCurrencyCode");
         String stringRate = request.getParameter("rate");
@@ -42,30 +45,34 @@ public class ExchangeRatesServlet extends BaseServlet {
             Validator.validateRateCode(baseCurrencyCode + targetCurrencyCode);
 
             BigDecimal rate = new BigDecimal(stringRate);
-            RequestExchangeRateDTO requestDTO = new RequestExchangeRateDTO(baseCurrencyCode, targetCurrencyCode, rate);
+            ReqExchangeRateDTO req = new ReqExchangeRateDTO(baseCurrencyCode, targetCurrencyCode, rate);
 
-            ExchangeRateModel exchangeRateModel = JDBCRepsitory.createExchangeRate(requestDTO)
-                    .orElseThrow(DatabaseException::new);
-            printWriter.println(objectMapper.writeValueAsString(exchangeRateModel));
+            Optional<ExchangeRateModel> exchangeRate = dao.create(req);
+
+            if (exchangeRate.isEmpty()) {
+                throw new FileAlreadyExistsException("Обменный курс уже существует в БД!");
+            }
+
+            pWriter.println(objMapper.writeValueAsString(exchangeRate.get()));
 
         } catch (InvalidCurrencyCodeException | InvalidRateCodeException
-                 | InvalidParametersException | NotFoundCurrencyException e) {
+                 | InvalidParametersException e) {
             response.setStatus(response.SC_BAD_REQUEST);
-            printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
+            pWriter.println(objMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
 
         } catch (FileAlreadyExistsException e) {
             response.setStatus(response.SC_CONFLICT);
-            printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
+            pWriter.println(objMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
 
-        } catch (DatabaseException e) {
+        } catch (SQLException e) {
             response.setStatus(response.SC_INTERNAL_SERVER_ERROR);
-            printWriter.println(objectMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
+            pWriter.println(objMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
         }
     }
 
     @Override
     protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        printWriter = resp.getWriter();
+        pWriter = resp.getWriter();
         super.service(req, resp);
     }
 }

@@ -1,4 +1,4 @@
-package com.currencyexchanger.controller.exception;
+package com.currencyexchanger.exception;
 
 public class NotFoundExchangeRateException extends Exception{
 

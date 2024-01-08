@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class RequestExchangeDTO {
+public class ReqExchangeDTO extends ReqDTO{
     private String baseCurrency;
     private String targetCurrency;
     private BigDecimal amount;
