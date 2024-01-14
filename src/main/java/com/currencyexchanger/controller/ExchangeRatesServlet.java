@@ -32,9 +32,10 @@ public class ExchangeRatesServlet extends BaseServlet {
 
         } catch (DatabaseException e) {
             response.setStatus(response.SC_INTERNAL_SERVER_ERROR);
-            pWriter.println(
-                    objMapper.writeValueAsString(
-                            new ErrorDTO("База данных недоступна!")));
+            objMapper.writeValue(
+                    pWriter,
+                    new ErrorDTO("База данных недоступна!")
+            );
         }
     }
 

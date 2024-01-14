@@ -11,7 +11,7 @@ public class Validator {
     private static final int POSITION_BASE_CODE = 3;
     private static final int POSITION_TARGET_CODE = 6;
     private static final int LENGTH_RATE_CODE = 6;
-    private static Set<String> codes;
+    private static final Set<String> codes;
 
     static {
         Set<Currency> codesCurrensy = Currency.getAvailableCurrencies();
