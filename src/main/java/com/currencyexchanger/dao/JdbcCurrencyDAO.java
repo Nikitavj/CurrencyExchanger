@@ -1,100 +1,114 @@
 package com.currencyexchanger.dao;
 
-import com.currencyexchanger.DTO.ReqCurrencyDTO;
+import com.currencyexchanger.exception.DatabaseException;
 import com.currencyexchanger.model.CurrencyModel;
 import com.currencyexchanger.utils.DBCPDataSourse;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+
+import java.sql.*;
 import java.util.*;
 
 public class JdbcCurrencyDAO implements CurrencyDAO {
 
     @Override
-    public Optional<CurrencyModel> create(ReqCurrencyDTO req) throws SQLException {
+    public CurrencyModel create(CurrencyModel cur) {
         final String query = "INSERT INTO currencies (code, fullname, sign) VALUES (?, ?, ?);";
 
         try (Connection connection = DBCPDataSourse.getConnection()) {
             PreparedStatement ps = connection.prepareStatement(query);
-            ps.setString(1, req.getCode());
-            ps.setString(2, req.getName());
-            ps.setString(3, req.getSign());
+            ps.setString(1, cur.getCode());
+            ps.setString(2, cur.getFullName());
+            ps.setString(3, cur.getSign());
             ps.executeUpdate();
 
             ResultSet rs = ps.getGeneratedKeys();
+            rs.next();
+            cur.setId(rs.getInt(1));
 
-            if (rs.next()) {
-                return Optional.of(getCurrency(rs));
-            }
-            return Optional.empty();
+            return cur;
+
+        } catch (SQLException e) {
+            throw new DatabaseException(e);
         }
     }
 
     @Override
-    public List<CurrencyModel> readeAll() throws SQLException {
+    public List<CurrencyModel> readeAll() {
         final String query = "SELECT * FROM currencies;";
-        ArrayList<CurrencyModel> list = new ArrayList<>();
+        LinkedList<CurrencyModel> list = new LinkedList<>();
 
         try (Connection connection = DBCPDataSourse.getConnection()) {
             PreparedStatement pr = connection.prepareStatement(query);
             ResultSet rs = pr.executeQuery();
 
-            while(rs.next()) {
+            while (rs.next()) {
                 list.add(getCurrency(rs));
             }
+        } catch (SQLException e) {
+            throw new DatabaseException(e);
         }
+
         return list;
     }
 
     @Override
-    public Optional<CurrencyModel> readeById(ReqCurrencyDTO req) throws SQLException {
+    public Optional<CurrencyModel> readeById(int id) {
         final String query = "SELECT * FROM currencies WHERE id = ?";
 
         try (Connection connection = DBCPDataSourse.getConnection()) {
             PreparedStatement ps = connection.prepareStatement(query);
-            ps.setInt(1, req.getId());
+            ps.setInt(1, id);
             ResultSet rs = ps.executeQuery();
 
-            if(rs.next()) {
+            if (rs.next()) {
                 return Optional.of(getCurrency(rs));
             }
+        } catch (SQLException e) {
+            throw new DatabaseException(e);
         }
+
         return Optional.empty();
     }
 
     @Override
-    public Optional<CurrencyModel> readeByCode(ReqCurrencyDTO req) throws SQLException {
+    public Optional<CurrencyModel> readeByCode(String code) {
         final String query = "SELECT * FROM currencies WHERE Code = ?";
 
-        try (Connection connection = DBCPDataSourse.getConnection()){
+        try (Connection connection = DBCPDataSourse.getConnection()) {
             PreparedStatement ps = connection.prepareStatement(query);
-            ps.setString(1, req.getCode());
+            ps.setString(1, code);
             ResultSet rs = ps.executeQuery();
 
-            if(rs.next()) {
+            if (rs.next()) {
                 return Optional.of(getCurrency(rs));
             }
+
+        } catch (SQLException e) {
+            throw new DatabaseException(e);
         }
+
         return Optional.empty();
     }
 
     @Override
-    public Optional<CurrencyModel> update(ReqCurrencyDTO req) throws SQLException {
-        return Optional.empty();
+    public void update(CurrencyModel cur) {
     }
 
     @Override
-    public Optional<CurrencyModel> delete(ReqCurrencyDTO req) {
-        return Optional.empty();
+    public void delete(int id) {
     }
 
-    private static CurrencyModel getCurrency(ResultSet rs) throws SQLException {
-        return new CurrencyModel(
-                rs.getInt("id"),
-                rs.getString("fullName"),
-                rs.getString("code"),
-                rs.getString("sign")
-        );
+    private static CurrencyModel getCurrency(ResultSet rs) {
+
+        try {
+            return new CurrencyModel(
+                    rs.getInt("id"),
+                    rs.getString("fullName"),
+                    rs.getString("code"),
+                    rs.getString("sign")
+            );
+
+        } catch (SQLException e) {
+            throw new DatabaseException(e);
+        }
     }
 }

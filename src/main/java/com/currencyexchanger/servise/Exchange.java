@@ -1,116 +1,132 @@
 package com.currencyexchanger.servise;
 
-import com.currencyexchanger.DTO.ReqExchangeDTO;
-import com.currencyexchanger.DTO.ReqExchangeRateDTO;
+import com.currencyexchanger.DTO.ReqExchange;
 import com.currencyexchanger.dao.JdbcExchangeRateDAO;
-import com.currencyexchanger.exception.DatabaseException;
-import com.currencyexchanger.exception.NotFoundExchangeRateException;
 import com.currencyexchanger.model.ExchangeModel;
 import com.currencyexchanger.model.ExchangeRateModel;
+
 import java.math.BigDecimal;
-import java.sql.SQLException;
 import java.util.Optional;
 
 import static java.math.BigDecimal.ROUND_FLOOR;
 
 public class Exchange {
+    private static final int SCALE_RATE = 6;
+    private static final int SCALE_CONVERT_AMOUNT = 2;
     private JdbcExchangeRateDAO dao = new JdbcExchangeRateDAO();
 
-    public Optional<ExchangeModel> exchange(ReqExchangeDTO request) throws NotFoundExchangeRateException, DatabaseException, SQLException {
+    public Optional<ExchangeModel> exchange(ReqExchange req) {
 
-        Optional<ExchangeModel> exchange = getDirectExchangeRate(request);
+        Optional<ExchangeModel> exchange = getDirectExchangeRate(req);
 
         if (exchange.isPresent()) {
             return exchange;
         }
 
-        exchange = getReverseExchangeRate(request);
+        exchange = getReverseExchangeRate(req);
         if (exchange.isPresent()) {
             return exchange;
         }
 
-        exchange = getCalculatedExchangeRate(request);
+        exchange = getConvertExchangeRate(req);
         if (exchange.isPresent()) {
             return exchange;
+        }
+
+        return exchange;
+    }
+
+    private Optional<ExchangeModel> getDirectExchangeRate(ReqExchange req) {
+
+        Optional<ExchangeRateModel> rateOpt = dao.readeByCodes(
+                req.getBaseCurrency(),
+                req.getTargetCurrency()
+        );
+
+        if (rateOpt.isPresent()) {
+            ExchangeRateModel rateModel = rateOpt.get();
+            BigDecimal convAmount = req.getAmount().
+                    multiply(rateModel.getRate()).
+                    setScale(SCALE_CONVERT_AMOUNT, ROUND_FLOOR);
+
+            ExchangeModel model = new ExchangeModel(
+                    rateModel.getBaseCurrency(),
+                    rateModel.getTargetCurrency(),
+                    rateModel.getRate(),
+                    req.getAmount(),
+                    convAmount
+            );
+
+            return Optional.of(model);
         }
 
         return Optional.empty();
     }
 
-    private Optional<ExchangeModel> getDirectExchangeRate(ReqExchangeDTO req) throws NotFoundExchangeRateException, DatabaseException, SQLException {
+    private Optional<ExchangeModel> getReverseExchangeRate(ReqExchange req) {
 
-        ExchangeModel exchangeModel = new ExchangeModel();
+        Optional<ExchangeRateModel> rateOpt = dao.readeByCodes(
+                req.getTargetCurrency(),
+                req.getBaseCurrency()
+        );
 
-        ReqExchangeRateDTO reqExchangeRateDTO = new ReqExchangeRateDTO(req.getBaseCurrency(),
-                req.getTargetCurrency());
+        if (rateOpt.isPresent()) {
+            ExchangeRateModel rateModel = rateOpt.get();
 
-        Optional<ExchangeRateModel> exchangeRateOpt = dao.readeByCodes(reqExchangeRateDTO);
+            BigDecimal convertedAmount = req.getAmount().divide(
+                    rateModel.getRate(),
+                    SCALE_CONVERT_AMOUNT,
+                    ROUND_FLOOR
+            );
+            BigDecimal rate = new BigDecimal(1).
+                    divide(rateModel.getRate(), SCALE_RATE, ROUND_FLOOR);
 
-        if (exchangeRateOpt.isEmpty()) {
-            return Optional.empty();
+            ExchangeModel exchange = new ExchangeModel(
+                    rateModel.getTargetCurrency(),
+                    rateModel.getBaseCurrency(),
+                    rate,
+                    req.getAmount(),
+                    convertedAmount
+            );
+
+            return Optional.of(exchange);
         }
 
-        ExchangeRateModel exchangeRateModel = exchangeRateOpt.get();
-        exchangeModel.setBaseCurrency(exchangeRateModel.getBaseCurrency());
-        exchangeModel.setTargetCurrency(exchangeRateModel.getTargetCurrency());
-        exchangeModel.setRate(exchangeRateModel.getRate());
-        exchangeModel.setAmount(req.getAmount());
-        exchangeModel.setConvertedAmount(req.getAmount()
-                .multiply(exchangeRateModel.getRate())
-                .setScale(2, ROUND_FLOOR));
-
-        return Optional.of(exchangeModel);
+        return Optional.empty();
     }
 
-    private Optional<ExchangeModel> getReverseExchangeRate(ReqExchangeDTO req) throws NotFoundExchangeRateException, DatabaseException, SQLException {
+    private Optional<ExchangeModel> getConvertExchangeRate(ReqExchange req) {
 
-        ExchangeModel exchangeModel = new ExchangeModel();
+        Optional<ExchangeRateModel> baseModelOpt = dao.readeByCodes(
+                "USD",
+                req.getBaseCurrency()
+        );
+        Optional<ExchangeRateModel> targetModelOpt = dao.readeByCodes(
+                "USD",
+                req.getTargetCurrency()
+        );
 
-        ReqExchangeRateDTO reqExchangeRateDTO = new ReqExchangeRateDTO(req.getTargetCurrency(),
-                req.getBaseCurrency());
+        if (baseModelOpt.isPresent() && targetModelOpt.isPresent()) {
+            ExchangeRateModel baseRate = baseModelOpt.get();
+            ExchangeRateModel targetRate = targetModelOpt.get();
 
-        Optional<ExchangeRateModel> exchangeRateOptional = dao.readeByCodes(reqExchangeRateDTO);
-        if (exchangeRateOptional.isEmpty()) {
-            return Optional.empty();
+            BigDecimal rate = targetRate.getRate()
+                    .divide(baseRate.getRate(), SCALE_RATE, ROUND_FLOOR);
+            BigDecimal convAmount = req.getAmount()
+                    .multiply(rate)
+                    .setScale(SCALE_CONVERT_AMOUNT, ROUND_FLOOR);
+
+            ExchangeModel model = new ExchangeModel(
+                    baseRate.getTargetCurrency(),
+                    targetRate.getTargetCurrency(),
+                    rate,
+                    req.getAmount(),
+                    convAmount
+            );
+
+            return Optional.of(model);
         }
 
-        ExchangeRateModel exchangeRateModel = exchangeRateOptional.get();
-        exchangeModel.setBaseCurrency(exchangeRateModel.getTargetCurrency());
-        exchangeModel.setTargetCurrency(exchangeRateModel.getBaseCurrency());
-        exchangeModel.setRate(new BigDecimal(1).divide(exchangeRateModel.getRate(), 6, ROUND_FLOOR));
-        exchangeModel.setAmount(req.getAmount());
-        exchangeModel.setConvertedAmount(req.getAmount()
-                .divide(exchangeRateModel.getRate(), 2, ROUND_FLOOR));
-
-        return Optional.of(exchangeModel);
-    }
-
-    private Optional<ExchangeModel> getCalculatedExchangeRate(ReqExchangeDTO req) throws NotFoundExchangeRateException, DatabaseException, SQLException {
-
-        ExchangeModel exchangeModel = new ExchangeModel();
-
-        ReqExchangeRateDTO baseExchangeRateDTO = new ReqExchangeRateDTO("USD", req.getBaseCurrency());
-        ReqExchangeRateDTO targetExchangeRateDTO = new ReqExchangeRateDTO("USD", req.getTargetCurrency());
-
-        Optional<ExchangeRateModel> baseModelOptional = dao.readeByCodes(baseExchangeRateDTO);
-        Optional<ExchangeRateModel> targetModelOptional =dao.readeByCodes(targetExchangeRateDTO);;
-
-        if (baseModelOptional.isEmpty() || targetModelOptional.isEmpty()) {
-            return Optional.empty();
-        }
-
-        ExchangeRateModel baseEexchangeRateModel = baseModelOptional.get();
-        ExchangeRateModel targetEexchangeRateModel = targetModelOptional.get();
-
-        exchangeModel.setBaseCurrency(baseEexchangeRateModel.getTargetCurrency());
-        exchangeModel.setTargetCurrency(targetEexchangeRateModel.getTargetCurrency());
-        exchangeModel.setRate(targetEexchangeRateModel.getRate()
-                .divide(baseEexchangeRateModel.getRate(), 6, ROUND_FLOOR));
-        exchangeModel.setAmount(req.getAmount());
-        exchangeModel.setConvertedAmount(req.getAmount()
-                .multiply(exchangeModel.getRate())
-                .setScale(2, ROUND_FLOOR));
-
-        return Optional.of(exchangeModel);
+        return Optional.empty();
     }
 }

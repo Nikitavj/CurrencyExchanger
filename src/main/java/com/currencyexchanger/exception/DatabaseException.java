@@ -1,8 +1,8 @@
 package com.currencyexchanger.exception;
 
-public class DatabaseException extends RuntimeException{
+public class DatabaseException extends RuntimeException {
 
-    public DatabaseException() {
-        super("База данных недоступна");
+    public DatabaseException(Throwable cause) {
+        super(cause);
     }
 }

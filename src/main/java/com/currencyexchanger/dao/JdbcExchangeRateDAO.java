@@ -1,7 +1,6 @@
 package com.currencyexchanger.dao;
 
-import com.currencyexchanger.DTO.ReqCurrencyDTO;
-import com.currencyexchanger.DTO.ReqExchangeRateDTO;
+import com.currencyexchanger.exception.DatabaseException;
 import com.currencyexchanger.model.CurrencyModel;
 import com.currencyexchanger.model.ExchangeRateModel;
 import com.currencyexchanger.utils.DBCPDataSourse;
@@ -17,31 +16,30 @@ import java.util.Optional;
 public class JdbcExchangeRateDAO implements ExchangeRateDAO {
 
     @Override
-    public Optional<ExchangeRateModel> create(ReqExchangeRateDTO req) throws SQLException {
+    public ExchangeRateModel create(ExchangeRateModel model) {
         final String query = "INSERT INTO exchangerates (BaseCurrencyId, TargetCurrencyId, rate) VALUES (?, ?, ?);";
-
         JdbcCurrencyDAO currencyDAO = new JdbcCurrencyDAO();
-        CurrencyModel baseCurrency = currencyDAO.readeByCode(new ReqCurrencyDTO(req.getBaseCurrencyCode())).get();
-        CurrencyModel targetCurrency = currencyDAO.readeByCode(new ReqCurrencyDTO(req.getTargetCurrncyCode())).get();
 
         try (Connection connection = DBCPDataSourse.getConnection()) {
             PreparedStatement ps = connection.prepareStatement(query);
-            ps.setInt(1, baseCurrency.getId());
-            ps.setInt(2, targetCurrency.getId());
-            ps.setBigDecimal(3, req.getRate());
+            ps.setInt(1, model.getBaseCurrency().getId());
+            ps.setInt(2, model.getTargetCurrency().getId());
+            ps.setBigDecimal(3, model.getRate());
             ps.executeUpdate();
 
             ResultSet rs = ps.getGeneratedKeys();
+            rs.next();
+            model.setId(rs.getInt(1));
 
-            if (rs.next()) {
-                return Optional.of(getExchangeRate(rs));
-            }
+            return model;
+
+        } catch (SQLException e) {
+            throw new DatabaseException(e);
         }
-        return Optional.empty();
     }
 
     @Override
-    public List<ExchangeRateModel> readeAll() throws SQLException {
+    public List<ExchangeRateModel> readeAll() {
         final String query = "SELECT * FROM exchangerates;";
         ArrayList<ExchangeRateModel> list = new ArrayList<>();
 
@@ -52,61 +50,88 @@ public class JdbcExchangeRateDAO implements ExchangeRateDAO {
             while (rs.next()) {
                 list.add(getExchangeRate(rs));
             }
+
+        } catch (SQLException e) {
+            throw new DatabaseException(e);
         }
+
         return list;
     }
 
     @Override
-    public Optional<ExchangeRateModel> readeById(ReqExchangeRateDTO req) throws SQLException {
+    public Optional<ExchangeRateModel> readeById(int id) {
         return Optional.empty();
     }
 
     @Override
-    public Optional<ExchangeRateModel> readeByCodes(ReqExchangeRateDTO req) throws SQLException {
+    public Optional<ExchangeRateModel> readeByCodes(String baseCode, String targetCode) {
         final String query = "SELECT * FROM exchangerates WHERE BaseCurrencyId = ? AND TargetCurrencyId = ?";
-
         JdbcCurrencyDAO currencyDAO = new JdbcCurrencyDAO();
-        CurrencyModel baseCurrency = currencyDAO.readeByCode(new ReqCurrencyDTO(req.getBaseCurrencyCode())).get();
-        CurrencyModel targetCurrency = currencyDAO.readeByCode(new ReqCurrencyDTO(req.getTargetCurrncyCode())).get();
+
+        Optional<CurrencyModel> baseCurr = currencyDAO.readeByCode(baseCode);
+        Optional<CurrencyModel> targetCurr = currencyDAO.readeByCode(targetCode);
+
+        if (baseCurr.isPresent() && targetCurr.isPresent()) {
+
+            try (Connection connection = DBCPDataSourse.getConnection()) {
+                PreparedStatement ps = connection.prepareStatement(query);
+                ps.setInt(1, baseCurr.get().getId());
+                ps.setInt(2, targetCurr.get().getId());
+                ResultSet rs = ps.executeQuery();
+
+                if (rs.next()) {
+                    return Optional.of(getExchangeRate(rs));
+                }
+
+            } catch (SQLException e) {
+                throw new DatabaseException(e);
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    @Override
+    public void update(ExchangeRateModel rate) {
+        final String query = "UPDATE exchangerates SET Rate = ? WHERE BaseCurrencyId = ? AND TargetCurrencyId = ?";
 
         try (Connection connection = DBCPDataSourse.getConnection()) {
             PreparedStatement ps = connection.prepareStatement(query);
-            ps.setInt(1, baseCurrency.getId());
-            ps.setInt(1, targetCurrency.getId());
-            ResultSet rs = ps.executeQuery();
+            ps.setBigDecimal(1, rate.getRate());
+            ps.setInt(2, rate.getBaseCurrency().getId());
+            ps.setInt(3, rate.getTargetCurrency().getId());
+            ps.executeUpdate();
 
-            if (rs.next()) {
-                return Optional.of(getExchangeRate(rs));
-            }
+        } catch (SQLException e) {
+            throw new DatabaseException(e);
         }
-        return Optional.empty();
     }
 
     @Override
-    public Optional<ExchangeRateModel> update(ReqExchangeRateDTO req) throws SQLException {
-        return Optional.empty();
+    public void delete(int id) {
     }
 
-    @Override
-    public Optional<ExchangeRateModel> delete(ReqExchangeRateDTO req) {
-        return Optional.empty();
-    }
+    private static ExchangeRateModel getExchangeRate(ResultSet rs) {
+        JdbcCurrencyDAO dao = new JdbcCurrencyDAO();
 
-    private static ExchangeRateModel getExchangeRate(ResultSet rs) throws SQLException {
-        JdbcCurrencyDAO currencyDAO = new JdbcCurrencyDAO();
+        try {
+            Optional<CurrencyModel> baseCurrency = dao.readeById(
+                    rs.getInt("BaseCurrencyId")
+            );
+            Optional<CurrencyModel> targetCurrency = dao.readeById(
+                    rs.getInt("TargetCurrencyId")
+            );
 
-        ReqCurrencyDTO reqBaseCurr = new ReqCurrencyDTO(rs.getInt("BaseCurrencyId"));
-        ReqCurrencyDTO reqTargetCurr = new ReqCurrencyDTO(rs.getInt("TargetCurrencyId"));
+            return new ExchangeRateModel(
+                    rs.getInt("id"),
+                    baseCurrency.get(),
+                    targetCurrency.get(),
+                    rs.getBigDecimal("rate")
+            );
 
-        Optional<CurrencyModel> baseCurrency = currencyDAO.readeById(reqBaseCurr);
-        Optional<CurrencyModel> targetCurrency = currencyDAO.readeById(reqTargetCurr);
-
-        return new ExchangeRateModel(
-                rs.getInt("id"),
-                baseCurrency.get(),
-                targetCurrency.get(),
-                rs.getBigDecimal("rate")
-        );
+        } catch (SQLException e) {
+            throw new DatabaseException(e);
+        }
     }
 }
 

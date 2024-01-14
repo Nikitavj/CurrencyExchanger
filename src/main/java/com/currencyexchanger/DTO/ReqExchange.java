@@ -1,14 +1,14 @@
 package com.currencyexchanger.DTO;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+
 import java.math.BigDecimal;
 
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class ReqExchangeDTO extends ReqDTO{
+public class ReqExchange {
     private String baseCurrency;
     private String targetCurrency;
     private BigDecimal amount;

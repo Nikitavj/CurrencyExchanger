@@ -1,7 +1,6 @@
 package com.currencyexchanger.controller;
 
 import com.currencyexchanger.DTO.ErrorDTO;
-import com.currencyexchanger.DTO.ReqCurrencyDTO;
 import com.currencyexchanger.dao.JdbcCurrencyDAO;
 import com.currencyexchanger.exception.DatabaseException;
 import com.currencyexchanger.exception.InvalidCurrencyCodeException;
@@ -12,69 +11,82 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.nio.file.FileAlreadyExistsException;
 import java.sql.SQLException;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @WebServlet(name = "currenciesServlet", value = "/currencies")
 public class CurrenciesServlet extends BaseServlet {
-    JdbcCurrencyDAO dao = new JdbcCurrencyDAO();
+    private final int ERROR_CODE_SQLITE_CONSTRAINT = 19;
+    private final JdbcCurrencyDAO dao = new JdbcCurrencyDAO();
 
     @Override
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
 
         try {
             List<CurrencyModel> list = dao.readeAll();
-            pWriter.println(objMapper.writeValueAsString(list));
+            objMapper.writeValue(pWriter, list);
 
-        } catch (SQLException e) {
+        } catch (DatabaseException e) {
             response.setStatus(response.SC_INTERNAL_SERVER_ERROR);
-            pWriter.println(objMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
+            objMapper.writeValue(
+                    pWriter,
+                    new ErrorDTO("База данных недоступна!")
+            );
         }
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+
         String name = request.getParameter("name");
         String code = request.getParameter("code");
         String sign = request.getParameter("sign");
+        List<String> parameters = Arrays.asList(name, code, sign);
 
         try {
-            Validator.validateParameters(name, code, sign);
+            Validator.validateParameters(parameters);
             Validator.validateCurrencyCode(code);
-            ReqCurrencyDTO reqCurrencyDTO = new ReqCurrencyDTO(name, code, sign);
-
-            Optional<CurrencyModel> currency = dao.create(reqCurrencyDTO);
-
-            if (currency.isEmpty()) {
-                throw new FileAlreadyExistsException("Запись в БД уже существует!");
-            }
-
-            pWriter.println(
-                    objMapper.writeValueAsString(currency.get()));
 
         } catch (InvalidCurrencyCodeException
-                 | InvalidParametersException  e) {
+                 | InvalidParametersException e) {
+
             response.setStatus(response.SC_BAD_REQUEST);
-            pWriter.println(
-                    objMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
+            objMapper.writeValue(
+                    pWriter,
+                    new ErrorDTO(e.getMessage())
+            );
+            return;
+        }
 
-        } catch (FileAlreadyExistsException e) {
-            response.setStatus(response.SC_CONFLICT);
-            pWriter.println(
-                    objMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
+        try {
+            CurrencyModel curr = new CurrencyModel(null, name, code, sign);
+            curr = dao.create(curr);
 
-        } catch (SQLException e) {
-            response.setStatus(response.SC_INTERNAL_SERVER_ERROR);
-            pWriter.println(
-                    objMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
+            objMapper.writeValue(pWriter, curr);
+
+        } catch (DatabaseException e) {
+            SQLException t = (SQLException) e.getCause();
+
+            if (t.getErrorCode() == ERROR_CODE_SQLITE_CONSTRAINT) {
+                response.setStatus(response.SC_CONFLICT);
+                objMapper.writeValue(
+                        pWriter,
+                        new ErrorDTO("Валюта с таким кодом уже существует!")
+                );
+
+            } else {
+                response.setStatus(response.SC_INTERNAL_SERVER_ERROR);
+                objMapper.writeValue(
+                        pWriter,
+                        new ErrorDTO("База данных недоступна!")
+                );
+            }
         }
     }
 
     @Override
-    protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        pWriter = resp.getWriter();
-        super.service(req, resp);
+    protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        pWriter = response.getWriter();
+        super.service(request, response);
     }
 }

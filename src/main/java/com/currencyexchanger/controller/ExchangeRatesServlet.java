@@ -1,23 +1,26 @@
 package com.currencyexchanger.controller;
 
 import com.currencyexchanger.DTO.ErrorDTO;
-import com.currencyexchanger.DTO.ReqExchangeRateDTO;
+import com.currencyexchanger.dao.JdbcCurrencyDAO;
 import com.currencyexchanger.dao.JdbcExchangeRateDAO;
 import com.currencyexchanger.exception.*;
+import com.currencyexchanger.model.CurrencyModel;
 import com.currencyexchanger.model.ExchangeRateModel;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.nio.file.FileAlreadyExistsException;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
 @WebServlet(name = "exchangeRates", value = "/exchangeRates")
 public class ExchangeRatesServlet extends BaseServlet {
+    private final int ERROR_CODE_SQLITE_CONSTRAINT = 19;
 
     @Override
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -25,48 +28,79 @@ public class ExchangeRatesServlet extends BaseServlet {
 
         try {
             List<ExchangeRateModel> list = dao.readeAll();
-            pWriter.println(objMapper.writeValueAsString(list));
+            objMapper.writeValue(pWriter, list);
 
-        } catch (SQLException e) {
+        } catch (DatabaseException e) {
             response.setStatus(response.SC_INTERNAL_SERVER_ERROR);
-            pWriter.println(objMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
+            pWriter.println(
+                    objMapper.writeValueAsString(
+                            new ErrorDTO("База данных недоступна!")));
         }
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        JdbcExchangeRateDAO dao = new JdbcExchangeRateDAO();
-        String baseCurrencyCode = request.getParameter("baseCurrencyCode");
-        String targetCurrencyCode = request.getParameter("targetCurrencyCode");
+        JdbcExchangeRateDAO rateDAO = new JdbcExchangeRateDAO();
+        JdbcCurrencyDAO currDAO = new JdbcCurrencyDAO();
+
+        String baseCurrCode = request.getParameter("baseCurrencyCode");
+        String targetCurrCode = request.getParameter("targetCurrencyCode");
         String stringRate = request.getParameter("rate");
+        List<String> parameters = Arrays.asList(
+                baseCurrCode,
+                targetCurrCode,
+                stringRate
+        );
 
         try {
-            Validator.validateParameters(baseCurrencyCode, targetCurrencyCode, stringRate);
-            Validator.validateRateCode(baseCurrencyCode + targetCurrencyCode);
+            Validator.validateParameters(parameters);
+            Validator.validateRateCode(baseCurrCode + targetCurrCode);
 
-            BigDecimal rate = new BigDecimal(stringRate);
-            ReqExchangeRateDTO req = new ReqExchangeRateDTO(baseCurrencyCode, targetCurrencyCode, rate);
+            Optional<CurrencyModel> baseCurr = currDAO.readeByCode(baseCurrCode);
+            Optional<CurrencyModel> targetCurr = currDAO.readeByCode(targetCurrCode);
 
-            Optional<ExchangeRateModel> exchangeRate = dao.create(req);
-
-            if (exchangeRate.isEmpty()) {
-                throw new FileAlreadyExistsException("Обменный курс уже существует в БД!");
+            if (baseCurr.isEmpty() || targetCurr.isEmpty()) {
+                response.setStatus(response.SC_NOT_FOUND);
+                objMapper.writeValue(
+                        pWriter,
+                        new ErrorDTO("Одна или обе валюты отсутсвуют в БД!"));
+                return;
             }
 
-            pWriter.println(objMapper.writeValueAsString(exchangeRate.get()));
+            ExchangeRateModel model = new ExchangeRateModel();
+            model.setRate(new BigDecimal(stringRate));
+            model.setBaseCurrency(baseCurr.get());
+            model.setTargetCurrency(targetCurr.get());
+
+            ExchangeRateModel exchangeRate = rateDAO.create(model);
+
+            objMapper.writeValue(pWriter, exchangeRate);
 
         } catch (InvalidCurrencyCodeException | InvalidRateCodeException
                  | InvalidParametersException e) {
             response.setStatus(response.SC_BAD_REQUEST);
-            pWriter.println(objMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
+            objMapper.writeValue(
+                    pWriter,
+                    new ErrorDTO(e.getMessage())
+            );
 
-        } catch (FileAlreadyExistsException e) {
-            response.setStatus(response.SC_CONFLICT);
-            pWriter.println(objMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
+        } catch (DatabaseException e) {
+            SQLException t = (SQLException) e.getCause();
 
-        } catch (SQLException e) {
-            response.setStatus(response.SC_INTERNAL_SERVER_ERROR);
-            pWriter.println(objMapper.writeValueAsString(new ErrorDTO(e.getMessage())));
+            if (t.getErrorCode() == ERROR_CODE_SQLITE_CONSTRAINT) {
+                response.setStatus(response.SC_CONFLICT);
+                objMapper.writeValue(
+                        pWriter,
+                        new ErrorDTO("Обменный курс уже существует в БД!")
+                );
+
+            } else {
+                response.setStatus(response.SC_INTERNAL_SERVER_ERROR);
+                objMapper.writeValue(
+                        pWriter,
+                        new ErrorDTO("База данных недоступна!")
+                );
+            }
         }
     }
 
